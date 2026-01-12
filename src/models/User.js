@@ -57,6 +57,33 @@ const userSchema = new mongoose.Schema(
         banExpiresAt: {
             type: Date,
         },
+        bio: {
+            type: String,
+            maxLength: 150,
+            default: '',
+        },
+        profilePhoto: {
+            type: String,
+            default: null,
+        },
+        photos: {
+            type: [{
+                url: { type: String, required: true },
+                publicId: { type: String, required: true },
+                isProfile: { type: Boolean, default: false },
+                order: { type: Number, default: 0 },
+                uploadedAt: { type: Date, default: Date.now }
+            }],
+            validate: [
+                {
+                    validator: function (v) {
+                        return v.length <= 5;
+                    },
+                    message: 'Maximum 5 photos allowed',
+                },
+            ],
+            default: [],
+        },
         deletedAt: {
             type: Date,
             default: null,

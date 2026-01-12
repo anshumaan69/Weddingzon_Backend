@@ -11,4 +11,8 @@ router.get('/health', homeController.getHealthCheck);
 // Auth Routes
 router.use('/api/auth', authRoutes);
 
+// User/Feed Routes
+const userRoutes = require('./user.routes');
+router.use('/api/users', userRoutes);
+
 module.exports = router;
