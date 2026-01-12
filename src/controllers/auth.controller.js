@@ -303,6 +303,26 @@ exports.registerDetails = async (req, res) => {
         // Contact & About
         if (req.body.alternate_mobile) user.alternate_mobile = req.body.alternate_mobile;
         if (req.body.suitable_time_to_call) user.suitable_time_to_call = req.body.suitable_time_to_call;
+
+        // Allow updating phone if not set (e.g. Google Auth)
+        if (req.body.phone && !user.phone) {
+            // Check if phone is already used
+            const existingUser = await User.findOne({ phone: req.body.phone });
+            if (existingUser) {
+                return res.status(400).json({ message: 'Phone number already in use' });
+            }
+            user.phone = req.body.phone;
+        } else if (req.body.phone && user.phone !== req.body.phone) {
+            // Optional: Allow changing phone? For now let's only allow if it was empty, 
+            // OR if we assume they verified it (which we don't here).
+            // Let's stick to: Update logic if they want to change it, but check uniqueness.
+            const existingUser = await User.findOne({ phone: req.body.phone });
+            if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+                return res.status(400).json({ message: 'Phone number already in use' });
+            }
+            user.phone = req.body.phone;
+        }
+
         if (req.body.about_me) user.about_me = req.body.about_me;
 
         // Only mark complete if we have the essentials
