@@ -1,22 +1,11 @@
-/**
- * Database Configuration
- * 
- * This file is a placeholder for your database connection setup.
- * 
- * Recommended options:
- * 1. MongoDB with Mongoose: mongoose.connect(process.env.MONGO_URI)
- * 2. PostgreSQL with Sequelize/TypeORM
- * 
- * Export the connection function here.
- */
+const mongoose = require('mongoose');
 
 const connectDB = async () => {
     try {
-        console.log('Database connection logic goes here...');
-        // await mongoose.connect(process.env.MONGO_URI);
-        // console.log('Database Connected!');
+        const conn = await mongoose.connect(process.env.MONGO_URI);
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {
-        console.error('Database Connection Error:', error);
+        console.error(`Error: ${error.message}`);
         process.exit(1);
     }
 };
