@@ -2,6 +2,25 @@ const dotenv = require('dotenv');
 // Load env vars immediately
 dotenv.config();
 
+console.log('--- SERVER STARTING ---');
+console.log('Node Version:', process.version);
+console.log('MONGO_URI Present:', !!process.env.MONGO_URI);
+console.log('PORT:', process.env.PORT);
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION! Shutting down...');
+  console.error(err.name, err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION! Shutting down...');
+  console.error(err.name, err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
