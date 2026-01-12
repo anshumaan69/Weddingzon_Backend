@@ -66,6 +66,66 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: null,
         },
+        // --- Basic Details ---
+        gender: { type: String, enum: ['Male', 'Female', 'Other'] },
+        created_for: { type: String },
+        height: { type: String },
+        marital_status: { type: String },
+        mother_tongue: { type: String },
+        disability: { type: String, default: 'None' },
+        aadhar_number: { type: String },
+        blood_group: { type: String },
+
+        // --- Location ---
+        country: { type: String },
+        state: { type: String },
+        city: { type: String },
+
+        // --- Family ---
+        father_status: { type: String },
+        mother_status: { type: String },
+        brothers: { type: Number, default: 0 },
+        sisters: { type: Number, default: 0 },
+        family_status: { type: String },
+        family_type: { type: String },
+        family_values: { type: String },
+        annual_income: { type: String }, // Family Income
+        family_location: { type: String },
+
+        // --- Education & Career ---
+        highest_education: { type: String },
+        educational_details: { type: String },
+        occupation: { type: String },
+        employed_in: { type: String },
+        personal_income: { type: String },
+        working_sector: { type: String },
+        working_location: { type: String },
+
+        // --- Religious ---
+        religion: { type: String },
+        community: { type: String },
+        sub_community: { type: String },
+
+        // --- Lifestyle ---
+        appearance: { type: String },
+        living_status: { type: String },
+        physical_status: { type: String },
+        eating_habits: { type: String },
+        smoking_habits: { type: String },
+        drinking_habits: { type: String },
+        hobbies: [String],
+
+        // --- Contact & Extra ---
+        alternate_mobile: { type: String },
+        suitable_time_to_call: { type: String },
+        about_me: { type: String },
+
+        // --- Preferences (Future Proofing) ---
+        property_types: [String],
+        land_types: [String],
+        land_area: { type: String },
+        house_types: [String],
+        business_types: [String],
         photos: {
             type: [{
                 url: { type: String, required: true },

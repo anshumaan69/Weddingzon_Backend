@@ -109,11 +109,23 @@ exports.googleAuth = async (req, res) => {
         let user = await User.findOne({ email });
 
         if (!user) {
+            let baseUsername = email.split('@')[0];
+            let username = baseUsername;
+            let counter = 1;
+
+            // Simple check to ensure uniqueness (best effort or iterative)
+            // Ideally we loop, but for now let's append a random string to be safe
+            // or just use email handle if unique. 
+            // Let's just append random 4 digits to ensure uniqueness for Google Auth users.
+            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+            username = `${baseUsername}${randomSuffix}`;
+
             user = new User({
                 email,
                 first_name: given_name,
                 last_name: family_name,
                 auth_provider: 'google',
+                username: username // Set generated username
             });
             await user.save();
         }
@@ -305,10 +317,12 @@ exports.registerDetails = async (req, res) => {
         if (req.body.suitable_time_to_call) user.suitable_time_to_call = req.body.suitable_time_to_call;
 
         // Allow updating phone if not set (e.g. Google Auth)
+        // Allow updating phone if not set (e.g. Google Auth)
         if (req.body.phone && !user.phone) {
             // Check if phone is already used
             const existingUser = await User.findOne({ phone: req.body.phone });
             if (existingUser) {
+                console.error('[DEBUG] Phone collision (initial set):', req.body.phone);
                 return res.status(400).json({ message: 'Phone number already in use' });
             }
             user.phone = req.body.phone;
@@ -318,12 +332,22 @@ exports.registerDetails = async (req, res) => {
             // Let's stick to: Update logic if they want to change it, but check uniqueness.
             const existingUser = await User.findOne({ phone: req.body.phone });
             if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+                console.error('[DEBUG] Phone collision (update):', req.body.phone);
                 return res.status(400).json({ message: 'Phone number already in use' });
             }
             user.phone = req.body.phone;
         }
 
         if (req.body.about_me) user.about_me = req.body.about_me;
+
+        // Username Update Logic
+        if (req.body.username && req.body.username !== user.username) {
+            const existingUsername = await User.findOne({ username: req.body.username });
+            if (existingUsername) {
+                return res.status(400).json({ message: 'Username is already taken' });
+            }
+            user.username = req.body.username;
+        }
 
         // Only mark complete if we have the essentials
         console.log('User Profile Updated. About Me Length:', user.about_me ? user.about_me.length : 0);
@@ -334,8 +358,9 @@ exports.registerDetails = async (req, res) => {
         await user.save();
         res.status(200).json({ message: 'Profile updated successfully', user });
     } catch (error) {
+        console.error('[DEBUG] Register Details Error:', error);
         if (error.code === 11000) {
-            return res.status(400).json({ message: 'Username already taken.' });
+            return res.status(400).json({ message: 'Username/Email/Phone already taken (Duplicate Key).' });
         }
         res.status(500).json({ message: 'Failed to update profile' });
     }
