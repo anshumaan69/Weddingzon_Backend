@@ -172,3 +172,84 @@ exports.getUserProfile = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+// @desc    Delete Photo
+// @route   DELETE /api/users/photos/:photoId
+// @access  Private
+exports.deletePhoto = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        const photoId = req.params.photoId;
+
+        // Find photo
+        const photoIndex = user.photos.findIndex(p => p._id.toString() === photoId);
+        if (photoIndex === -1) {
+            return res.status(404).json({ message: 'Photo not found' });
+        }
+
+        const photo = user.photos[photoIndex];
+
+        // Remove from Cloudinary
+        if (photo.publicId) {
+            await cloudinary.uploader.destroy(photo.publicId);
+        }
+
+        // Remove from array
+        user.photos.splice(photoIndex, 1);
+
+        // If deleted photo was profile photo, set new one
+        if (photo.isProfile) {
+            user.profilePhoto = null; // Reset first
+            if (user.photos.length > 0) {
+                user.photos[0].isProfile = true;
+                user.profilePhoto = user.photos[0].url;
+            }
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Photo deleted',
+            data: user.photos
+        });
+
+    } catch (error) {
+        console.error('Delete Photo Error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Set Profile Photo
+// @route   PATCH /api/users/photos/:photoId/set-profile
+// @access  Private
+exports.setProfilePhoto = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        const photoId = req.params.photoId;
+
+        const photo = user.photos.find(p => p._id.toString() === photoId);
+        if (!photo) {
+            return res.status(404).json({ message: 'Photo not found' });
+        }
+
+        // Reset all to false
+        user.photos.forEach(p => p.isProfile = false);
+
+        // Set target to true
+        photo.isProfile = true;
+        user.profilePhoto = photo.url;
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile photo updated',
+            data: user.photos
+        });
+
+    } catch (error) {
+        console.error('Set Profile Photo Error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
