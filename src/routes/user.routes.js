@@ -12,6 +12,8 @@ router.use(protect);
 router.get('/feed', getFeed);
 router.post('/upload-photos', upload.array('photos', 5), uploadPhotos);
 router.get('/:username', getUserProfile);
+router.delete('/photos/:photoId', require('../controllers/user.controller').deletePhoto);
+router.patch('/photos/:photoId/set-profile', require('../controllers/user.controller').setProfilePhoto);
 
 // Stub for access requests to prevent frontend crash if it calls them
 router.post('/photo-access/request', (req, res) => res.status(200).json({ message: 'Request sent (stub)' }));
