@@ -7,5 +7,6 @@ router.use(protect);
 
 router.post('/request/:recipientId', sendRequest);
 router.get('/status/:userId', getConnectionStatus);
+router.post('/request-photo-access', require('../controllers/connection.controller').requestPhotoAccess);
 
 module.exports = router;

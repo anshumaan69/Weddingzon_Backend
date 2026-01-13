@@ -75,3 +75,52 @@ exports.getConnectionStatus = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+const PhotoAccessRequest = require('../models/PhotoAccessRequest');
+
+// @desc    Request Photo Access (Sent to Admin/Target)
+// @route   POST /api/connections/request-photo-access
+// @access  Private
+exports.requestPhotoAccess = async (req, res) => {
+    try {
+        const { targetUserId } = req.body;
+        const requesterId = req.user.id;
+
+        if (requesterId === targetUserId) {
+            return res.status(400).json({ message: 'Cannot request access from yourself' });
+        }
+
+        // Check if already requested
+        const existingRequest = await PhotoAccessRequest.findOne({
+            requester: requesterId,
+            targetUser: targetUserId,
+            status: 'pending'
+        });
+
+        if (existingRequest) {
+            return res.status(400).json({ message: 'Request already pending' });
+        }
+
+        // Check if already granted
+        const grantedRequest = await PhotoAccessRequest.findOne({
+            requester: requesterId,
+            targetUser: targetUserId,
+            status: 'granted'
+        });
+
+        if (grantedRequest) {
+            return res.status(400).json({ message: 'Access already granted' });
+        }
+
+        const newRequest = await PhotoAccessRequest.create({
+            requester: requesterId,
+            targetUser: targetUserId,
+            status: 'pending'
+        });
+
+        res.status(201).json({ success: true, message: 'Request sent to admin for approval', data: newRequest });
+    } catch (error) {
+        console.error('Request Photo Access Error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

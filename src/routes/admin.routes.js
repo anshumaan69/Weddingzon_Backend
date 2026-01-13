@@ -14,5 +14,6 @@ router.get('/cost', require('../controllers/admin.controller').getCosts);
 router.post('/cost', require('../controllers/admin.controller').addCost);
 
 router.get('/photo-access/requests', require('../controllers/admin.controller').getPhotoAccessRequests);
+router.patch('/photo-access/requests/:id', require('../controllers/admin.controller').updatePhotoAccessStatus);
 
 module.exports = router;
