@@ -3,6 +3,7 @@ const { OAuth2Client } = require('google-auth-library');
 const twilio = require('twilio');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const User = require('../models/User');
 
 const client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
