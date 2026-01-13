@@ -1,0 +1,312 @@
+WEDDINGZON API DOCUMENTATION
+============================
+Version: 1.0.0
+Base URL: /api
+Date: 2026-01-14
+
+INTRODUCTION
+------------
+This API powers the WeddingZon platform, facilitating user onboarding, feed interactions, photo management, and administrative oversight. The API uses RESTful principles and JSON for data exchange.
+
+AUTHENTICATION
+--------------
+- Method: HTTP-Only Cookies (JWT)
+- Cookie Names: `access_token`, `refresh_token`, `csrf_token`
+- CSRF Protection: Required for mutating requests (POST, PUT, PATCH, DELETE) via the `X-CSRF-Token` header.
+
+COMMON RESPONSE FORMATS
+-----------------------
+Success (200 OK):
+{
+  "success": true,
+  "data": { ... } // Or specific fields like "user", "message"
+}
+
+Error (4xx/5xx):
+{
+  "message": "Error description",
+  "error": "Error code (optional)"
+}
+
+
+================================================================================
+                                 AUTH & ACCOUNTS
+================================================================================
+
+1. GOOGLE LOGIN
+   POST /auth/google
+   Desc: Authenticate a user via Google OAuth 2.0.
+   
+   Request Body:
+   {
+     "code": "4/0AeaYSH...",          // Required: Auth code from Google
+     "redirect_uri": "http://..."     // Required: Custom redirect URI
+   }
+
+   Response (200 OK):
+   {
+     "success": true,
+     "user": {
+       "_id": "65a1b2c3d4e5f67890123456",
+       "email": "user@example.com",
+       "username": "user1234",
+       "role": "user",
+       ...
+     }
+   }
+
+2. SEND OTP
+   POST /auth/send-otp
+   Desc: Send a verification OTP to a mobile number.
+   
+   Request Body:
+   {
+     "phone": "+919876543210"         // Required
+   }
+
+   Response (200 OK):
+   {
+     "message": "OTP sent successfully"
+   }
+
+3. VERIFY OTP
+   POST /auth/verify-otp
+   Desc: Verify the sent OTP and login/link the phone number.
+   
+   Request Body:
+   {
+     "phone": "+919876543210",        // Required
+     "code": "123456"                 // Required
+   }
+
+   Response (200 OK):
+   {
+     "success": true,
+     "user": { ... }
+   }
+
+   Response (400 Bad Request):
+   {
+     "message": "Invalid OTP"
+   }
+
+4. UPDATE PROFILE DETAILS
+   POST /auth/register-details
+   Desc: Update profile information (Protected).
+   
+   Request Body:
+   {
+     "first_name": "John",
+     "last_name": "Doe",
+     "dob": "1995-05-15",
+     "gender": "Male",
+     "role": "groom",
+     "religion": "Hindu",
+     "about_me": "Software Engineer..."
+   }
+
+   Response (200 OK):
+   {
+     "message": "Profile updated successfully",
+     "user": { ... }
+   }
+
+5. GET CURRENT USER
+   GET /auth/me
+   Desc: Retrieve currently logged-in user context.
+   
+   Response (200 OK):
+   {
+     "_id": "...",
+     "username": "johndoe",
+     "email": "john@example.com",
+     "role": "groom",
+     "is_profile_complete": true
+   }
+
+6. LOGOUT
+   POST /auth/logout
+   Desc: Invalidate session and clear cookies.
+   
+   Response (200 OK):
+   {
+     "message": "Logged out"
+   }
+
+
+================================================================================
+                                 USER & FEED
+================================================================================
+
+1. GET FEED
+   GET /users/feed
+   Desc: Fetch a paginated, shuffled feed of potential matches.
+   Query Params:
+     - cursor: (Optional) ID of the last user seen in previous batch.
+
+   Response (200 OK):
+   {
+     "success": true,
+     "data": [
+       {
+         "_id": "...",
+         "username": "alice",
+         "profilePhoto": "https://...",
+         "photos": [ ... ], // Restricted photos are blurred
+         "bio": "..."
+       },
+       ...
+     ],
+     "nextCursor": "65a1..."
+   }
+
+2. GET USER PROFILE
+   GET /users/:username
+   Desc: Get full details of a specific user.
+   
+   Response (200 OK):
+   {
+     "_id": "...",
+     "first_name": "Alice",
+     "last_name": "Wonder",
+     "about_me": "...",
+     "photos": [ ... ]
+   }
+
+3. UPLOAD PHOTOS
+   POST /users/upload-photos
+   Desc: Upload up to 10 photos to the user's gallery.
+   Content-Type: multipart/form-data
+   
+   Body:
+     - photos: [Binary File Data]
+
+   Response (200 OK):
+   {
+     "success": true,
+     "message": "Photos uploaded",
+     "data": [
+       { "url": "...", "isProfile": true, "restricted": false },
+       ...
+     ]
+   }
+
+4. DELETE PHOTO
+   DELETE /users/photos/:photoId
+   Desc: Remove a specific photo from gallery.
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "message": "Photo deleted",
+     "data": [ ...remaining photos ]
+   }
+
+
+================================================================================
+                                  CONNECTIONS
+================================================================================
+
+1. REQUEST PHOTO ACCESS
+   POST /connections/request-photo-access
+   Desc: Request permission to view a user's private photos.
+   
+   Request Body:
+   {
+     "targetUserId": "65b2..."        // Required
+   }
+
+   Response (200 OK):
+   {
+     "message": "Request sent/queued for approval",
+     "request": { "status": "pending", ... }
+   }
+
+2. CHECK CONNECTION STATUS
+   GET /connections/status/:targetUserId
+   Desc: Check if the current user has access to target user's photos.
+   
+   Response (200 OK):
+   {
+     "status": "none" | "pending" | "accepted" | "rejected"
+   }
+
+
+================================================================================
+                                ADMINISTRATIVE
+================================================================================
+(Requires `admin_role`: 'admin' or 'superadmin')
+
+1. LIST USERS
+   GET /admin/users
+   Query Params:
+     - page: 1
+     - limit: 10
+     - search: "john"
+     - role: "bride" (or 'all')
+     - sortBy: "created_at"
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "data": [ ... ],
+     "pagination": {
+       "total": 150,
+       "page": 1,
+       "pages": 15
+     }
+   }
+
+2. SYSTEM STATISTICS
+   GET /admin/stats
+   Desc: Dashboard metrics.
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "totalUsers": 1250,
+     "totalRevenue": 50000,
+     "activeUsers": 300,
+     "suspendedUsers": 5
+   }
+
+3. MANAGE PHOTO REQUESTS
+   GET /admin/photo-access/requests
+   Desc: View all pending photo access requests requiring moderation.
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "data": [
+       {
+         "_id": "req_123",
+         "requester": { "username": "bob" },
+         "targetUser": { "username": "alice" },
+         "status": "pending"
+       }
+     ]
+   }
+
+4. APPROVE/REJECT REQUEST
+   PATCH /admin/photo-access/requests/:id
+   
+   Request Body:
+   {
+     "status": "granted" | "rejected"
+   }
+
+   Response (200 OK):
+   {
+     "success": true,
+     "data": { "status": "granted", ... }
+   }
+
+5. USER MANAGEMENT (BAN/ROLE)
+   PATCH /admin/users/:id/status
+   Body: { "status": "banned" }
+
+   PATCH /admin/users/:id/role
+   Body: { "role": "admin" }
+
+   DELETE /admin/users/:id
+   Desc: Soft delete a user.

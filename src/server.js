@@ -44,6 +44,18 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(morgan('dev'));
 
+// Custom Request Logger
+const logger = require('./utils/logger');
+app.use((req, res, next) => {
+  logger.info(`Incoming Request: ${req.method} ${req.url}`, {
+    ip: req.ip,
+    userAgent: req.get('User-Agent'),
+    // Sanitize body for logs (hide sensitive fields)
+    body: req.body ? { ...req.body, password: req.body.password ? '***' : undefined, code: req.body.code ? '***' : undefined } : {}
+  });
+  next();
+});
+
 // CORS Configuration
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -52,6 +64,7 @@ app.use(cors({
 
 // Routes
 app.get('/', (req, res) => {
+  logger.info('Health Check Received');
   res.send('API is running...');
 });
 
@@ -59,6 +72,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/api/connections', require('./routes/connection.routes'));
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  logger.error(`Global Error: ${err.message}`, { stack: err.stack });
+  res.status(500).json({ message: 'Server Error' });
+});
 
 const PORT = process.env.PORT || 5000;
 

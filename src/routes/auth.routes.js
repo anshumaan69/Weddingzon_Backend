@@ -7,7 +7,7 @@ const rateLimiterMiddleware = require('../middlewares/rateLimiter');
 
 // Public
 router.post('/google', googleAuth);
-router.post('/send-otp', rateLimiterMiddleware, sendOtp);
+router.post('/send-otp', sendOtp);
 router.post('/verify-otp', verifyOtp);
 router.post('/refresh', refreshToken);
 

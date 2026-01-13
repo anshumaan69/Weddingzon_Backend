@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const logger = require('../utils/logger');
 const { OAuth2Client } = require('google-auth-library');
 const twilio = require('twilio');
 const jwt = require('jsonwebtoken');
@@ -131,26 +131,18 @@ exports.googleAuth = async (req, res) => {
         }
 
         if (user.status === 'suspended' || user.status === 'banned') {
+            logger.warn(`Blocked Login Attempt: ${email} (Status: ${user.status})`);
             return res.status(403).json({ message: 'Account suspended or banned' });
         }
 
         const { accessToken, refreshToken } = generateTokens(user._id);
         setCookies(req, res, accessToken, refreshToken);
 
+        logger.info(`Google Auth Success: ${email}`);
         res.status(200).json({ success: true, user });
     } catch (error) {
-        console.error('Google Auth Error Details:', JSON.stringify(error, null, 2));
-        console.error('Received Code:', code ? 'Yes' : 'No');
-        console.error('Used Redirect URI:', redirect_uri || process.env.CALLBACK_URL);
-        console.error('Env Redirect URI:', process.env.CALLBACK_URL);
-
-        let message = 'Authentication failed';
-        if (error.response && error.response.data) {
-            message += `: ${JSON.stringify(error.response.data)}`;
-        } else if (error.message) {
-            message += `: ${error.message}`;
-        }
-        res.status(401).json({ message });
+        logger.error('Google Auth Failed', { error: error.message });
+        res.status(401).json({ message: 'Authentication failed' });
     }
 };
 
@@ -164,10 +156,12 @@ exports.sendOtp = async (req, res) => {
 
     try {
         if (process.env.NODE_ENV !== 'production' && phone === '+919999999999') {
+            logger.info('OTP Sent Mock: +919999999999');
             return res.status(200).json({ message: 'OTP sent successfully (MOCK TEST)' });
         }
 
         if (!twilioClient) {
+            logger.warn('Twilio Client Missing - Using Mock OTP');
             return res.status(200).json({ message: 'OTP sent successfully (MOCK)' });
         }
 
@@ -175,9 +169,10 @@ exports.sendOtp = async (req, res) => {
         await twilioClient.verify.v2.services(serviceSid)
             .verifications.create({ to: phone.trim(), channel: 'sms' });
 
+        logger.info(`OTP Sent Successfully: ${phone}`);
         res.status(200).json({ message: 'OTP sent successfully' });
     } catch (error) {
-        console.error('Send OTP Error:', error);
+        logger.error('Send OTP Failed', { phone, error: error.message });
         res.status(500).json({ message: 'Failed to send OTP' });
     }
 };
@@ -209,6 +204,7 @@ exports.verifyOtp = async (req, res) => {
                 // Login Flow
                 const { accessToken, refreshToken } = generateTokens(user._id);
                 setCookies(req, res, accessToken, refreshToken);
+                logger.info(`OTP Login Success: ${phone}`);
                 return res.status(200).json({ success: true, user });
             }
 
@@ -225,21 +221,24 @@ exports.verifyOtp = async (req, res) => {
 
                         const { accessToken, refreshToken } = generateTokens(user._id);
                         setCookies(req, res, accessToken, refreshToken);
+                        logger.info(`OTP Linked Success: ${phone} to User ${user._id}`);
                         return res.status(200).json({ success: true, user });
                     }
                 } catch (e) { /* ignore */ }
             }
 
+            logger.warn(`OTP Verified but Account Not Found/Linked: ${phone}`);
             return res.status(400).json({
                 message: 'Account not found. Please signup with Google first.',
                 error: 'signup_required'
             });
 
         } else {
+            logger.warn(`Invalid OTP Attempt: ${phone}`);
             return res.status(400).json({ message: 'Invalid OTP' });
         }
     } catch (error) {
-        console.error('Verify OTP Error:', error);
+        logger.error(`Verify OTP Error: ${phone}`, { error: error.message });
         res.status(500).json({ message: 'Verification failed' });
     }
 };
@@ -356,9 +355,10 @@ exports.registerDetails = async (req, res) => {
         }
 
         await user.save();
+        logger.info(`Profile Updated: ${user.username}`);
         res.status(200).json({ message: 'Profile updated successfully', user });
     } catch (error) {
-        console.error('[DEBUG] Register Details Error:', error);
+        logger.error('Register Details Error', { error: error.message });
         if (error.code === 11000) {
             return res.status(400).json({ message: 'Username/Email/Phone already taken (Duplicate Key).' });
         }
@@ -402,6 +402,7 @@ exports.refreshToken = async (req, res) => {
 
 exports.logout = async (req, res) => {
     clearCookies(req, res);
+    logger.info('User Logged Out');
     res.status(200).json({ message: 'Logged out' });
 };
 
@@ -409,8 +410,10 @@ exports.getMe = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
+        // logger.debug(`GetMe Success: ${user.username}`); // Verbose
         res.status(200).json(user);
     } catch (error) {
+        logger.error('GetMe Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };

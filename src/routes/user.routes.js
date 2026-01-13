@@ -4,13 +4,13 @@ const { getFeed, uploadPhotos, getUserProfile } = require('../controllers/user.c
 // IMPORTANT: We need multer for upload
 const multer = require('multer');
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
+const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB limit
 const { protect } = require('../middlewares/authMiddleware');
 
 router.use(protect);
 
 router.get('/feed', getFeed);
-router.post('/upload-photos', upload.array('photos', 5), uploadPhotos);
+router.post('/upload-photos', upload.array('photos', 10), uploadPhotos);
 router.get('/:username', getUserProfile);
 router.delete('/photos/:photoId', require('../controllers/user.controller').deletePhoto);
 router.patch('/photos/:photoId/set-profile', require('../controllers/user.controller').setProfilePhoto);

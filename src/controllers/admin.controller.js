@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Cost = require('../models/Cost');
 const PhotoAccessRequest = require('../models/PhotoAccessRequest');
+const logger = require('../utils/logger');
 
 // @desc    Get all users (with pagination, search, sort, filter)
 // @route   GET /api/admin/users
@@ -11,7 +12,8 @@ exports.getUsers = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const search = req.query.search || '';
         const roleFilter = req.query.role || 'all';
-        const sortOrder = req.query.sortOrder || 'desc';
+        const sortBy = req.query.sortBy || 'created_at';
+        const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
 
         const query = {};
 
@@ -37,9 +39,7 @@ exports.getUsers = async (req, res) => {
         }
 
         // Sort Logic
-        const sortOptions = {};
-        if (sortOrder === 'asc') sortOptions.created_at = 1;
-        else sortOptions.created_at = -1;
+        const sortOptions = { [sortBy]: sortOrder };
 
         const totalUsers = await User.countDocuments(query);
         const users = await User.find(query)
@@ -54,11 +54,12 @@ exports.getUsers = async (req, res) => {
             pagination: {
                 total: totalUsers,
                 page,
+                limit,
                 pages: Math.ceil(totalUsers / limit),
             },
         });
     } catch (error) {
-        console.error('Get Users Error:', error);
+        logger.error('Admin Get Users Error', { admin: req.user.username, error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -90,7 +91,7 @@ exports.getStats = async (req, res) => {
             bannedUsers: await User.countDocuments({ status: 'banned' })
         });
     } catch (error) {
-        console.error('Get Stats Error:', error);
+        logger.error('Admin Get Stats Error', { admin: req.user.username, error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -130,7 +131,7 @@ exports.getPhotoAccessRequests = async (req, res) => {
 
         res.status(200).json({ success: true, data: requests });
     } catch (error) {
-        console.error('Get Photo Access Requests Error:', error);
+        logger.error('Admin Get Photo Requests Error', { admin: req.user.username, error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -157,15 +158,109 @@ exports.updatePhotoAccessStatus = async (req, res) => {
 
         if (status === 'granted') {
             request.grantedAt = Date.now();
+            logger.info(`Photo Request Granted`, { admin: req.user.username, request: request._id });
         } else {
             request.rejectedAt = Date.now();
+            logger.info(`Photo Request Rejected`, { admin: req.user.username, request: request._id });
         }
 
         await request.save();
 
         res.status(200).json({ success: true, data: request });
     } catch (error) {
-        console.error('Update Photo Access Error:', error);
+        logger.error('Update Photo Access Error', { admin: req.user.username, error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Update User Status (Suspend/Ban/Active)
+// @route   PATCH /api/admin/users/:id/status
+// @access  Private/Admin
+exports.updateUserStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.status = status;
+        if (status === 'banned') {
+            const date = new Date();
+            date.setDate(date.getDate() + 30); // Default ban 30 days
+            user.banExpiresAt = date;
+        } else {
+            user.banExpiresAt = null;
+        }
+
+        await user.save();
+        logger.info(`User Status Updated: ${user.username} -> ${status}`, { admin: req.user.username });
+        res.status(200).json({ success: true, data: user });
+    } catch (error) {
+        logger.error('Update User Status Error', { admin: req.user.username, error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Delete User
+// @route   DELETE /api/admin/users/:id
+// @access  Private/Admin
+exports.deleteUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        await user.deleteOne();
+        logger.warn(`User Deleted: ${user.username}`, { admin: req.user.username });
+        res.status(200).json({ success: true, message: 'User deleted' });
+    } catch (error) {
+        logger.error('Delete User Error', { admin: req.user.username, error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Update User Role
+// @route   PATCH /api/admin/users/:id/role
+// @access  Private/Admin
+exports.updateUserRole = async (req, res) => {
+    try {
+        const { role } = req.body;
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // If promoting to admin
+        if (role === 'admin') {
+            user.admin_role = 'admin';
+            // We don't necessarily change the main 'role' (e.g. bride/groom should stay bride/groom but have admin access?)
+            // Or do we?
+            // Existing logic seems to treat 'role' as the primary designator.
+            // Let's set both for compatibility if needed, but per recent changes admin_role is key.
+            // However, the frontend sends 'admin' as the role string.
+            // For now, let's set admin_role.
+        } else if (role === 'user') {
+            user.admin_role = null;
+        }
+
+        // Also update the main role field for display purposes if that's what the UI expects
+        // user.role = role; // Wait, User model enum for role doesn't have 'admin' anymore?
+        // Let's check User model again. 
+        // User model role enum: ['user', 'bride', 'groom', 'vendor', 'franchise']
+        // Wait, the UI passes 'admin'. This might fail validation if I set user.role = 'admin'.
+        // BUT, admin_role is what matters for access.
+
+        // Let's just update admin_role based on the request.
+
+        await user.save();
+        res.status(200).json({ success: true, data: user });
+    } catch (error) {
+        console.error('Update User Role Error:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };

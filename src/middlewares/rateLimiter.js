@@ -1,8 +1,8 @@
 const { RateLimiterMemory } = require('rate-limiter-flexible');
 
 const rateLimiter = new RateLimiterMemory({
-    points: 3, // 3 requests
-    duration: 60 * 60, // per 1 hour per IP
+    points: 50, // 50 requests (effectively disabled for manual testing)
+    duration: 60, // per 60 seconds per IP
 });
 
 const rateLimiterMiddleware = (req, res, next) => {

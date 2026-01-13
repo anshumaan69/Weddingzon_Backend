@@ -142,9 +142,9 @@ const userSchema = new mongoose.Schema(
             validate: [
                 {
                     validator: function (v) {
-                        return v.length <= 5;
+                        return v.length <= 10;
                     },
-                    message: 'Maximum 5 photos allowed',
+                    message: 'Maximum 10 photos allowed',
                 },
             ],
             default: [],

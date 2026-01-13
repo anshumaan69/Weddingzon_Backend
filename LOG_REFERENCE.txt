@@ -1,0 +1,88 @@
+WEDDINGZON LOG REFERENCE & TROUBLESHOOTING GUIDE
+==================================================
+
+This guide maps backend log messages to their definitions, potential causes, and solutions.
+
+--------------------------------------------------------------------------------
+[LEVEL] PATTERN                           | MEANING / ACTION
+--------------------------------------------------------------------------------
+
+[ERROR] Global Error: <Message>
+   MEANING: An unhandled exception occurred in the server processing pipeline.
+   ACTION:  Check the accompanying stack trace. Indicates a bug in code or crash.
+
+[WARN]  Blocked Login Attempt: <Email>
+   MEANING: A user tried to login but their account Status is 'suspended' or 'banned'.
+   ACTION:  Check 'admin/users' to unban if this is a mistake.
+
+[INFO]  Google Auth Success: <Email>
+   MEANING: Successful authentication via Google OAuth.
+   ACTION:  Normal operation.
+
+[ERROR] Google Auth Failed
+   MEANING: Google rejected the token or code.
+   ACTION:  Check GOOGLE_CLIENT_ID and SECRET in .env. Verify correct redirect_uri.
+
+[INFO]  OTP Sent Successfully: <Phone>
+   MEANING: Twilio API accepted the SMS request.
+   ACTION:  Normal operation. If user doesn't receive, check Twilio Dashboard logs.
+
+[ERROR] Send OTP Failed
+   MEANING: Twilio API rejected the request/credentials invalid.
+   ACTION:  Verify TWILIO_ACCOUNT_SID and AUTH_TOKEN. Check credit balance.
+
+[WARN]  Invalid OTP Attempt: <Phone>
+   MEANING: User entered wrong code.
+   ACTION:  Normal user error. If frequent, might be brute force (check rate limits).
+
+[INFO]  OTP Login Success: <Phone>
+   MEANING: Phone verification passed for existing user. Login granted.
+   ACTION:  Normal operation.
+
+[WARN]  OTP Verified but Account Not Found/Linked
+   MEANING: Phone is verified, but no User document exists with this phone, and no session to link to.
+   ACTION:  User must sign up via Google first, or your flow requires creating a user here.
+
+[INFO]  Profile Updated: <Username>
+   MEANING: User successfully saved changes to /register-details.
+   ACTION:  Normal operation.
+
+[ERROR] Register Details Error (Duplicate Key)
+   MEANING: User tried to save username/email/phone that belongs to another user.
+   ACTION:  Frontend should show "That username is taken". Check data integrity.
+
+[INFO]  Feed Fetched for <User>: <Count> items
+   MEANING: Feed generation logic ran successfully.
+   ACTION:  Normal. If Count is 0, check if database has other users or if filters are too strict.
+
+[ERROR] Upload Error
+   MEANING: Multer or Cloudinary failed to process the image.
+   ACTION:  Check file size limits (50MB) or Cloudinary credentials/quota.
+
+[INFO]  Photo Access Requested: <User> -> <Target>
+   MEANING: A request object was created in DB.
+   ACTION:  Admin should see this in the Admin Panel > Requests.
+
+[WARN]  Self-Request for Photo Access
+   MEANING: User tried to request their own photos.
+   ACTION:  Frontend UI bug (button shouldn't be visible to owner).
+
+[INFO]  Photo Request Granted/Rejected
+   MEANING: Admin performed an action on a pending request.
+   ACTION:  Normal operation.
+
+[WARN]  User Deleted: <Username>
+   MEANING: Admin soft-deleted a user.
+   ACTION:  Irreversible operation (unless soft delete logic is implemented).
+
+--------------------------------------------------------------------------------
+COMMON DEBUGGING STEPS
+--------------------------------------------------------------------------------
+1. Logs show "Twilio Client Missing"
+   -> You are in DEV mode or missing SID/TOKEN in .env. Mock OTP will be used.
+
+2. Logs show "Google Auth Failed: redirect_uri_mismatch"
+   -> The URI in your Frontend GoogleOAuthProvider doesn't match Google Console settings.
+
+3. Logs show "MongoServerError: E11000 duplicate key error"
+   -> Application tried to insert a record with a unique field (email/username) that already exists.
