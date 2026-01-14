@@ -406,7 +406,7 @@ exports.registerDetails = async (req, res) => {
 };
 
 exports.refreshToken = async (req, res) => {
-    const incomingRefreshToken = req.cookies.refresh_token;
+    const incomingRefreshToken = req.cookies.refresh_token || req.body.refreshToken;
     if (!incomingRefreshToken) return res.status(401).json({ message: 'No refresh token' });
 
     try {

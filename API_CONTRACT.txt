@@ -9,7 +9,7 @@ INTRODUCTION
 This API powers the WeddingZon platform, facilitating user onboarding, feed interactions, photo management, and administrative oversight. The API uses RESTful principles and JSON for data exchange.
 
     This API powers the WeddingZon platform, facilitating user onboarding, feed interactions, photo management, and administrative oversight. The API uses RESTful principles and JSON for data exchange.
-
+  
 DATA MODELS
 -----------
 User Schema (MongoDB):
@@ -93,9 +93,10 @@ User Schema (MongoDB):
 
 AUTHENTICATION
 --------------
-- Method: HTTP-Only Cookies (JWT)
+- Method: HTTP-Only Cookies (Web) OR Bearer Token (Mobile/Flutter)
 - Cookie Names: `access_token`, `refresh_token`, `csrf_token`
-- CSRF Protection: Required for mutating requests (POST, PUT, PATCH, DELETE) via the `X-CSRF-Token` header.
+- Header: `Authorization: Bearer <token>` (Recommended for Mobile)
+- CSRF Protection: Required for cookie-based sessions via `X-CSRF-Token` header. Skipped for Bearer token requests.
 
 COMMON RESPONSE FORMATS
 -----------------------
@@ -214,6 +215,18 @@ Error (4xx/5xx):
    Response (200 OK):
    {
      "message": "Logged out"
+   }
+
+7. REFRESH TOKEN
+   POST /auth/refresh
+   Desc: Get a new access token using a valid refresh token.
+   
+   Request (Cookie): `refresh_token` must be present.
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "accessToken": "ey..." // New short-lived token
    }
 
 

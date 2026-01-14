@@ -39,6 +39,28 @@ The backend uses **JWT (JSON Web Tokens)**.
       },
     ));
     ```
+### Google Sign-In (Auth Code Flow)
+**CRITICAL**: The backend requires the `serverAuthCode`, NOT the `idToken`.
+
+1.  **Flutter Setup**:
+    Use the `google_sign_in` package. You MUST use the **Web Client ID** from Google Console as the `serverClientId` in your Flutter config to get a valid code for the backend.
+
+2.  **Request Body**:
+    ```dart
+    // 1. Sign In
+    final GoogleSignInAccount? user = await _googleSignIn.signIn();
+    
+    // 2. Send 'serverAuthCode' to backend
+    // POST /auth/google
+    final response = await dio.post('/auth/google', data: {
+      "code": user?.serverAuthCode, // Required
+      // "redirect_uri": "..."      // Optional (if used in cloud console)
+    });
+    
+    // 3. Save Tokens
+    final accessToken = response.data['accessToken'];
+    await storage.write(key: 'jwt_token', value: accessToken);
+    ```
 
 ## 3. Key Endpoints & Data Models
 
