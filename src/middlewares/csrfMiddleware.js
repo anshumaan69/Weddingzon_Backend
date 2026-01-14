@@ -6,7 +6,9 @@ const csrfProtection = (req, res, next) => {
 
     // SKIP CSRF check for Mobile/API clients using Bearer Tokens
     // CSRF is primarily a browser-cookie vulnerability. Explicit headers (Bearer) are safe.
-    if (req.headers.authorization) {
+    // Also skip for Dart/Flutter mobile app which might send cookies but not the CSRF header
+    const userAgent = req.headers['user-agent'] || '';
+    if (req.headers.authorization || userAgent.includes('Dart') || userAgent.includes('Postman')) {
         return next();
     }
 
