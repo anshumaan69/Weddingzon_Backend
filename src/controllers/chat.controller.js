@@ -1,6 +1,12 @@
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const s3Client = require('../config/s3');
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { v4: uuidv4 } = require('uuid');
+
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME || 'weddingzon-uploads';
+const CDN_URL = process.env.AWS_CDN_URL || `https://${BUCKET_NAME}.s3.amazonaws.com`;
 
 // @desc    Get Chat History with a specific user
 // @route   GET /api/chat/history/:userId
@@ -95,5 +101,42 @@ exports.getConversations = async (req, res) => {
     } catch (error) {
         logger.error('Get Conversations Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Upload Media for Chat
+// @route   POST /api/chat/upload
+// @access  Private
+exports.uploadMedia = async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+        const fileId = uuidv4();
+        // Simple extension extraction
+        const extension = req.file.originalname.split('.').pop();
+        const key = `chat/${req.user.id}/${fileId}.${extension}`;
+
+        const command = new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: key,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+        });
+
+        await s3Client.send(command);
+
+        // Construct URL
+        const url = `${CDN_URL}/${key}`;
+
+        res.status(200).json({
+            success: true,
+            url,
+            type: req.file.mimetype.split('/')[0], // 'image', 'video', etc.
+            fileName: req.file.originalname
+        });
+
+    } catch (error) {
+        logger.error('Chat Upload Error', { error: error.message });
+        res.status(500).json({ message: 'Upload failed' });
     }
 };

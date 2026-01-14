@@ -1,8 +1,26 @@
 const Chat = require('../models/Chat');
 const logger = require('../utils/logger');
 const jwt = require('jsonwebtoken');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const { createClient } = require('redis');
 
-module.exports = (io) => {
+module.exports = async (io) => {
+    // --- Redis Adapter Setup ---
+    if (process.env.REDIS_URL) {
+        try {
+            const pubClient = createClient({ url: process.env.REDIS_URL });
+            const subClient = pubClient.duplicate();
+
+            await Promise.all([pubClient.connect(), subClient.connect()]);
+
+            io.adapter(createAdapter(pubClient, subClient));
+            logger.info('Redis Adapter connected to Socket.IO');
+        } catch (error) {
+            logger.error('Redis Adapter Connection Error', { error: error.message });
+            // Continue without Redis (InMemory)
+        }
+    }
+
     // Middleware for authentication
     io.use(async (socket, next) => {
         try {
@@ -21,40 +39,70 @@ module.exports = (io) => {
     });
 
     io.on('connection', (socket) => {
-        logger.info(`Socket Connected: ${socket.user.id}`);
+        const userId = socket.user.id;
+        logger.info(`Socket Connected: ${userId}`);
 
-        // Join a room specific to this user (for receiving private messages)
-        socket.join(socket.user.id);
+        // Join a room specific to this user
+        socket.join(userId);
+
+        // Broadcast user online status
+        socket.broadcast.emit('user_status', { userId, status: 'online' });
 
         socket.on('join_room', (room) => {
             socket.join(room);
-            logger.info(`User ${socket.user.id} joined room ${room}`);
+            logger.info(`User ${userId} joined room ${room}`);
+        });
+
+        // --- Typing Indicators ---
+        socket.on('typing_start', (data) => {
+            const { receiverId } = data;
+            io.to(receiverId).emit('typing_start', { senderId: userId });
+        });
+
+        socket.on('typing_end', (data) => {
+            const { receiverId } = data;
+            io.to(receiverId).emit('typing_end', { senderId: userId });
+        });
+
+        // --- Read Receipts ---
+        socket.on('message_read', async (data) => {
+            const { messageId, senderId } = data;
+            try {
+                await Chat.findByIdAndUpdate(messageId, { isRead: true });
+                io.to(senderId).emit('message_read', { messageId, readerId: userId });
+            } catch (error) {
+                logger.error('Message Read Update Error', error);
+            }
         });
 
         socket.on('send_message', async (data) => {
             try {
-                const { receiverId, message } = data;
+                const { receiverId, message, media } = data;
 
                 // Save to Database
                 const newChat = new Chat({
-                    sender: socket.user.id,
+                    sender: userId,
                     receiver: receiverId,
-                    message: message
+                    message: message, // Can be empty if media is present
+                    media: media
                 });
                 await newChat.save();
 
-                // Emit to receiver's room
-                io.to(receiverId).emit('receive_message', {
+                const messageData = {
                     _id: newChat._id,
-                    sender: socket.user.id,
+                    sender: userId,
                     receiver: receiverId,
                     message: message,
+                    media: media,
                     timestamp: newChat.timestamp,
                     isRead: false
-                });
+                };
 
-                // Also emit back to sender (optimistic UI update details)
-                socket.emit('message_sent', newChat);
+                // Emit to receiver's room
+                io.to(receiverId).emit('receive_message', messageData);
+
+                // Also emit back to sender (functionally 'ack', ensures data consistency)
+                socket.emit('message_sent', messageData);
 
             } catch (error) {
                 logger.error('Socket Send Message Error', { error: error.message });
@@ -62,7 +110,9 @@ module.exports = (io) => {
         });
 
         socket.on('disconnect', () => {
-            logger.info(`Socket Disconnected: ${socket.user.id}`);
+            logger.info(`Socket Disconnected: ${userId}`);
+            // Broadcast offline status
+            socket.broadcast.emit('user_status', { userId, status: 'offline' });
         });
     });
 };

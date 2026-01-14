@@ -13,12 +13,21 @@ const chatSchema = new mongoose.Schema({
     },
     message: {
         type: String,
-        required: true
+        required: function () { return !this.media; } // Message is optional if media is present
+    },
+    media: {
+        url: { type: String },
+        type: { type: String, enum: ['image', 'video', 'audio', 'file'] },
+        fileName: { type: String }
     },
     isRead: {
         type: Boolean,
         default: false
     },
+    reactions: [{
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        emoji: { type: String }
+    }],
     timestamp: {
         type: Date,
         default: Date.now

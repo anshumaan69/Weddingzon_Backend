@@ -5,7 +5,12 @@ const { getChatHistory, getConversations } = require('../controllers/chat.contro
 
 router.use(protect);
 
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB limit
+
 router.get('/history/:userId', getChatHistory);
 router.get('/conversations', getConversations);
+router.post('/upload', upload.single('file'), require('../controllers/chat.controller').uploadMedia);
 
 module.exports = router;
