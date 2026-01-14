@@ -162,6 +162,7 @@ exports.searchUsers = async (req, res) => {
             land_component, // e.g. "Yes", "No", or range like "5+ Acres" (Simplified for now)
             property_type,  // e.g. "Commercial", "Residential"
             sortBy,
+            q, // Generic Search Query
             page = 1, limit = 20
         } = req.query;
 
@@ -173,6 +174,23 @@ exports.searchUsers = async (req, res) => {
                 { profilePhoto: { $ne: null } }
             ]
         };
+
+        // --- Generic Text Search ---
+        if (q) {
+            const regex = new RegExp(q, 'i');
+            if (!query.$and) query.$and = [];
+            query.$and.push({
+                $or: [
+                    { username: regex },
+                    { first_name: regex },
+                    { last_name: regex },
+                    { bio: regex },
+                    { city: regex },
+                    { state: regex },
+                    { occupation: regex }
+                ]
+            });
+        }
 
         // --- Age Filter ---
         if (minAge || maxAge) {

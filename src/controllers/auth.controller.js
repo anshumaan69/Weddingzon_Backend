@@ -190,7 +190,7 @@ exports.googleAuth = async (req, res) => {
         setCookies(req, res, accessToken, refreshToken);
 
         logger.info(`Google Auth Success: ${email}`);
-        res.status(200).json({ success: true, user });
+        res.status(200).json({ success: true, user, accessToken, refreshToken });
     } catch (error) {
         logger.error('Google Auth Failed', { error: error.message });
         res.status(401).json({ message: 'Authentication failed' });
@@ -244,7 +244,7 @@ exports.verifyOtp = async (req, res) => {
                 const { accessToken, refreshToken } = generateTokens(user._id);
                 setCookies(req, res, accessToken, refreshToken);
                 logger.info(`OTP Login Success: ${phone}`);
-                return res.status(200).json({ success: true, user });
+                return res.status(200).json({ success: true, user, accessToken, refreshToken });
             }
 
             // Signup Link Flow
@@ -261,7 +261,7 @@ exports.verifyOtp = async (req, res) => {
                         const { accessToken, refreshToken } = generateTokens(user._id);
                         setCookies(req, res, accessToken, refreshToken);
                         logger.info(`OTP Linked Success: ${phone} to User ${user._id}`);
-                        return res.status(200).json({ success: true, user });
+                        return res.status(200).json({ success: true, user, accessToken, refreshToken });
                     }
                 } catch (e) { /* ignore */ }
             }
@@ -432,7 +432,7 @@ exports.refreshToken = async (req, res) => {
         const csrfToken = crypto.randomBytes(32).toString('hex');
         res.cookie('csrf_token', csrfToken, csrfOptions);
 
-        res.status(200).json({ success: true });
+        res.status(200).json({ success: true, accessToken: newAccessToken });
     } catch (error) {
         clearCookies(req, res);
         res.status(401).json({ message: 'Session expired' });

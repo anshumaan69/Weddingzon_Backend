@@ -72,6 +72,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/api/connections', require('./routes/connection.routes'));
+app.use('/api/chat', require('./routes/chat.routes'));
 
 // Global Error Handler
 app.use((err, req, res, next) => {
@@ -79,8 +80,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Server Error' });
 });
 
+// --- Socket.io Setup ---
+const http = require('http');
+const { Server } = require('socket.io');
+const initSocket = require('./socket');
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    credentials: true,
+  }
+});
+
+// Initialize Socket Logic
+initSocket(io);
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
