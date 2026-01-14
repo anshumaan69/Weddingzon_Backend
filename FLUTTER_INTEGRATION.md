@@ -65,10 +65,11 @@ The backend uses **JWT (JSON Web Tokens)**.
     -   `religion`, `community`
     -   `city`, `state` (Partial matches supported)
     -   `height`
+    -   **New**: `property_type` (e.g. "Residential"), `land_component` (e.g. "5 Acres")
 -   **Flutter Tip**: Use a `Map<String, dynamic>` to build query parameters and pass it to Dio's `queryParameters`.
 
 ### C. Image Upload (Multipart)
-The backend uses **Cloudinary** for image storage.
+The backend uses **AWS S3** for image storage.
 
 -   **Endpoint**: `POST /users/upload-photos`
 -   **Format**: `multipart/form-data`
@@ -86,18 +87,24 @@ The backend uses **Cloudinary** for image storage.
 
 ## 4. Image Display & Features
 
-### Cloudinary Transformations
-The backend automatically handles Privacy (Blurring). 
+### Restricted Access (Twin-Upload Strategy)
+The backend automatically serves different URLs based on the viewer's access rights.
 
--   **Public/Allowed**: Returns `url` (Standard Cloudinary URL).
--   **Restricted**: Returns `url` with blurring transformation (`e_blur:2000...`) injected.
--   **Watermarking**: (Coming Soon) The backend will also inject watermark transformations into these URLs.
+-   **Public/Restricted**: Returns the `url` field, which points to a **Blurred, Low-Res** version on S3.
+-   **Allowed/Connected**: Returns the `url` field, which points to the **Clear, Watermarked** version on S3.
 
 **Flutter Logic**:
--   Simply use `CachedNetworkImage` with the URL provided completely by the backend.
--   The client does **not** need to manipulate the string.
+-   **Zero Logic Required Client-Side**: The backend swaps the URL in the JSON response before sending it to you.
+-   Simply use `CachedNetworkImage` with the provided `url`.
 
 ```dart
+// User model
+class Photo {
+  final String url; // THIS is what you display. It might be blurry or clear.
+  final String? key;
+}
+
+// Widget
 CachedNetworkImage(
   imageUrl: user.photos[0].url, 
   placeholder: (context, url) => CircularProgressIndicator(),
@@ -109,22 +116,3 @@ The backend uses standard HTTP codes:
 -   `401 Unauthorized`: Token invalid/expired. -> **Redirect to Login**.
 -   `400 Bad Request`: Validation error (e.g., File too large). -> **Show SnackBar**.
 -   `500 Server Error`: Backend crash. -> **Show generic error**.
-
-## 6. Type Definitions (Dart Model)
-Ensure your `User` model matches the backend schema:
-```dart
-class User {
-  final String id;
-  final String username;
-  final String role; // 'user', 'member', etc.
-  final List<Photo> photos;
-  // ...
-}
-
-class Photo {
-  final String url;
-  final String? publicId; // Cloudinary ID
-  final bool isProfile;
-  final bool? restricted; // True if the image is blurred
-}
-```

@@ -134,7 +134,9 @@ const userSchema = new mongoose.Schema(
         photos: {
             type: [{
                 url: { type: String, required: true },
-                publicId: { type: String, required: true },
+                blurredUrl: { type: String }, // For restricted access (S3)
+                key: { type: String },        // S3 Key for deletion
+                publicId: { type: String },   // Deprecated (Cloudinary) - Keep for backward compat temporarily
                 isProfile: { type: Boolean, default: false },
                 order: { type: Number, default: 0 },
                 uploadedAt: { type: Date, default: Date.now }

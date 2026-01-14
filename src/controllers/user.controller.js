@@ -1,140 +1,32 @@
 const User = require('../models/User');
 const PhotoAccessRequest = require('../models/PhotoAccessRequest');
-const cloudinary = require('../config/cloudinary');
+// const cloudinary = require('../config/cloudinary'); // Deprecated
+const s3Client = require('../config/s3');
+const { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const sharp = require('sharp');
+const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
-const { compressImage } = require('../utils/compressImage');
+
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME || 'weddingzon-uploads';
+const CDN_URL = process.env.AWS_CDN_URL || `https://${BUCKET_NAME}.s3.amazonaws.com`;
+
+// Helper: Generate Presigned URL
+const getPreSignedUrl = async (key) => {
+    if (!key) return null;
+    try {
+        const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
+        // URL valid for 1 hour (3600s)
+        return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    } catch (error) {
+        logger.error('Presign URL Error', { key, error: error.message });
+        return null;
+    }
+};
 
 // @desc    Get Feed Users (Randomized Cursor Strategy)
 // @route   GET /api/users/feed
 // @access  Private
-// @desc    Search Users with Filters
-// @route   GET /api/users/search
-// @access  Private
-exports.searchUsers = async (req, res) => {
-    try {
-        const {
-            minAge, maxAge,
-            religion, community,
-            state, city,
-            marital_status,
-            minHeight, maxHeight,
-            mother_tongue,
-            eating_habits, smoking_habits, drinking_habits,
-            highest_education, annual_income, occupation,
-            sortBy,
-            page = 1, limit = 20
-        } = req.query;
-
-        const query = {
-            status: 'active',
-            _id: { $ne: req.user._id }, // Exclude self
-            $or: [
-                { 'photos.0': { $exists: true } },
-                { profilePhoto: { $ne: null } }
-            ]
-        };
-
-        // --- Age Filter ---
-        if (minAge || maxAge) {
-            const today = new Date();
-            const dobQuery = {};
-            if (maxAge) {
-                const date = new Date(today.getFullYear() - parseInt(maxAge) - 1, today.getMonth(), today.getDate());
-                dobQuery.$gte = date;
-            }
-            if (minAge) {
-                const date = new Date(today.getFullYear() - parseInt(minAge), today.getMonth(), today.getDate());
-                dobQuery.$lte = date;
-            }
-            if (Object.keys(dobQuery).length > 0) query.dob = dobQuery;
-        }
-
-        // --- Personal & Cultural Filters ---
-        if (religion) query.religion = religion;
-        if (community) query.community = community;
-        if (mother_tongue) query.mother_tongue = mother_tongue;
-        if (marital_status) query.marital_status = marital_status;
-
-        // --- Location (Regex) ---
-        if (state) query.state = new RegExp(state, 'i');
-        if (city) query.city = new RegExp(city, 'i');
-
-        // --- Professional (Regex/Exact) ---
-        if (highest_education) query.highest_education = highest_education;
-        if (annual_income) query.annual_income = annual_income;
-        if (occupation) query.occupation = new RegExp(occupation, 'i');
-
-        // --- Lifestyle ---
-        if (eating_habits) query.eating_habits = eating_habits;
-        if (smoking_habits) query.smoking_habits = smoking_habits;
-        if (drinking_habits) query.drinking_habits = drinking_habits;
-
-        // --- Height (Simple String Match or Range if standardized) ---
-        // For now, if exact height provided:
-        if (minHeight) query.height = { ...query.height, $gte: minHeight }; // Assuming string comparison works for "5'5"" if format consistent
-        // Note: Height string comparison is flaky ("5'10" < "5'2"). Ideally store as cm. 
-        // Skipping complex height range logic for now, using exact match if provided as 'height' param, 
-        // or just placeholder. User asked for filters, let's add basic ones.
-        // If they send `height` param:
-        if (req.query.height) query.height = req.query.height;
-
-        // --- Sorting ---
-        let sortOption = { created_at: -1 }; // Default Newest
-        if (sortBy === 'age_asc') sortOption = { dob: -1 }; // DOB desc = Younger first? No, DOB desc is 2020 (Young). We want Age Asc (Youngest) => DOB Descending (Later dates).
-        if (sortBy === 'age_desc') sortOption = { dob: 1 }; // Oldest first => DOB Ascending (Earlier dates).
-        // Wait: 
-        // Youngest (20 yrs) = DOB 2004. 
-        // Oldest (30 yrs) = DOB 1994. 
-        // Age Asc (20->30) means DOB 2004 -> 1994 (Descending). Correct.
-
-        // --- Execute ---
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        const users = await User.find(query)
-            .select('username first_name last_name profilePhoto photos bio dob religion city state height occupation')
-            .sort(sortOption)
-            .skip(skip)
-            .limit(parseInt(limit));
-
-        const total = await User.countDocuments(query);
-
-        // --- Map Display Data (Reuse logic if needed, but keep it simple for now) ---
-        const data = users.map(user => {
-            // Calculate Age
-            let age = null;
-            if (user.dob) {
-                const diff = Date.now() - user.dob.getTime();
-                age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
-            }
-            return {
-                _id: user._id,
-                username: user.username,
-                displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username,
-                profilePhoto: user.profilePhoto || (user.photos?.[0]?.url) || null,
-                age,
-                religion: user.religion,
-                city: user.city,
-                state: user.state,
-                occupation: user.occupation
-            };
-        });
-
-        res.status(200).json({
-            success: true,
-            data,
-            pagination: {
-                total,
-                page: parseInt(page),
-                pages: Math.ceil(total / parseInt(limit))
-            }
-        });
-
-    } catch (error) {
-        logger.error('Search Users Error', { error: error.message });
-        res.status(500).json({ message: 'Server Error' });
-    }
-};
-
 exports.getFeed = async (req, res) => {
     try {
         const { cursor } = req.query;
@@ -162,11 +54,10 @@ exports.getFeed = async (req, res) => {
             .sort({ _id: -1 })
             .limit(FETCH_SIZE);
 
-        // Capture next cursor (from the last of the fetched batch, to advance properly)
+        // Capture next cursor
         const nextCursor = users.length > 0 ? users[users.length - 1]._id : null;
 
         // 2. Shuffle Logic
-        // Simple Fisher-Yates or random sort for small array
         users = users.sort(() => Math.random() - 0.5);
 
         // 3. Slice Logic
@@ -186,7 +77,7 @@ exports.getFeed = async (req, res) => {
         }
 
         // 5. Map Data
-        const feedData = visibleUsers.map(user => {
+        const feedData = await Promise.all(visibleUsers.map(async user => {
             const userObj = user.toObject();
             let photos = userObj.photos || [];
 
@@ -195,37 +86,52 @@ exports.getFeed = async (req, res) => {
 
             const hasAccess = isAdmin || grantedUserIds.has(userObj._id.toString());
 
-            // Apply restrictions
-            if (!hasAccess && photos.length > 1) {
-                photos = photos.map((photo, index) => {
-                    if (index === 0) return photo; // First photo always public
+            // Process URLs (Presign)
+            photos = await Promise.all(photos.map(async (photo, index) => {
+                // Determine if restricted
+                const isRestricted = !hasAccess && index !== 0 && photos.length > 1;
 
-                    let blurredUrl = '';
-                    if (photo.url && photo.url.includes('cloudinary.com')) {
-                        blurredUrl = photo.url.replace('/upload/', '/upload/e_blur:2000,q_1,f_auto/');
+                // If restricted, prefer blurred key, else original key
+                // Fallback: If blurredKey missing (legacy), strict-mode would hide it, but for now fallback to original key
+                // Note: 'key' in DB is always the original key. Use logic to verify.
+
+                let targetKey = photo.key;
+                if (isRestricted) {
+                    // Try to derive blurred key if not stored explicit value
+                    // Our upload logic stores: {key}_orig.webp. Blurred is {key}_blur.webp
+                    if (photo.key && photo.key.includes('_orig.webp')) {
+                        targetKey = photo.key.replace('_orig.webp', '_blur.webp');
+                    } else {
+                        // Legacy or unknown format: fallback to original key (User will see clear image)
+                        // For stricter security: targetKey = null; 
                     }
-                    return { ...photo, restricted: true, url: blurredUrl };
-                });
-            }
+                }
+
+                let signedUrl = null;
+                if (targetKey) {
+                    signedUrl = await getPreSignedUrl(targetKey);
+                }
+
+                // If no S3 key (legacy cloudinary), keep original url
+                const finalUrl = signedUrl || photo.url;
+
+                return {
+                    ...photo,
+                    url: finalUrl,
+                    restricted: isRestricted
+                };
+            }));
 
             return {
                 _id: userObj._id,
                 username: userObj.username,
-                profilePhoto: userObj.profilePhoto,
+                profilePhoto: userObj.profilePhoto, // This might need update if it's just a ref to photos[0]
                 bio: userObj.bio,
                 photos: photos,
                 role: userObj.role
             };
-        });
+        }));
 
-        // res.status(200).json({ // Removed verbose logging for feed if not debugging
-        //     success: true,
-        //     data: feedData, // Array of 9 shuffled users
-        //     nextCursor      // ID to fetch next batch of 15
-        // });
-
-        // Use condensed log
-        // logger.info(`Feed Fetched for ${req.user.username}: ${feedData.length} items`);
         res.status(200).json({
             success: true,
             data: feedData,
@@ -238,7 +144,161 @@ exports.getFeed = async (req, res) => {
     }
 };
 
-// @desc    Upload Photos (User Profile)
+// @desc    Search Users with Filters
+// @route   GET /api/users/search
+// @access  Private
+exports.searchUsers = async (req, res) => {
+    try {
+        const {
+            minAge, maxAge,
+            religion, community,
+            state, city,
+            marital_status,
+            minHeight, maxHeight,
+            mother_tongue,
+            eating_habits, smoking_habits, drinking_habits,
+            highest_education, annual_income, occupation,
+            // Property Filters
+            land_component, // e.g. "Yes", "No", or range like "5+ Acres" (Simplified for now)
+            property_type,  // e.g. "Commercial", "Residential"
+            sortBy,
+            page = 1, limit = 20
+        } = req.query;
+
+        const query = {
+            status: 'active',
+            _id: { $ne: req.user._id },
+            $or: [
+                { 'photos.0': { $exists: true } },
+                { profilePhoto: { $ne: null } }
+            ]
+        };
+
+        // --- Age Filter ---
+        if (minAge || maxAge) {
+            const today = new Date();
+            const dobQuery = {};
+            if (maxAge) {
+                const date = new Date(today.getFullYear() - parseInt(maxAge) - 1, today.getMonth(), today.getDate());
+                dobQuery.$gte = date;
+            }
+            if (minAge) {
+                const date = new Date(today.getFullYear() - parseInt(minAge), today.getMonth(), today.getDate());
+                dobQuery.$lte = date;
+            }
+            if (Object.keys(dobQuery).length > 0) query.dob = dobQuery;
+        }
+
+        // --- Personal ---
+        if (religion) query.religion = religion;
+        if (community) query.community = community;
+        if (mother_tongue) query.mother_tongue = mother_tongue;
+        if (marital_status) query.marital_status = marital_status;
+
+        // --- Location ---
+        if (state) query.state = new RegExp(state, 'i');
+        if (city) query.city = new RegExp(city, 'i');
+
+        // --- Professional ---
+        if (highest_education) query.highest_education = highest_education;
+        if (annual_income) query.annual_income = annual_income;
+        if (occupation) query.occupation = new RegExp(occupation, 'i');
+
+        // --- Lifestyle ---
+        if (eating_habits) query.eating_habits = eating_habits;
+        if (smoking_habits) query.smoking_habits = smoking_habits;
+        if (drinking_habits) query.drinking_habits = drinking_habits;
+
+        // --- Property / Land Filters (Based on User Request) ---
+        // Assuming user stores these as strings or arrays in 'property_types' or 'land_area'
+        if (property_type) {
+            query.property_types = { $in: [new RegExp(property_type, 'i')] };
+        }
+        if (land_component) {
+            // Simplified: If they want to search by text/value. 
+            // Ideally land_area would be numeric for range, but schema has String.
+            query.land_area = { $ne: null }; // Basic "Has Land" check if passed "true"?
+            // Or if passing exact string:
+            if (land_component !== 'any') {
+                // regex search for now since schema is string
+                query.land_area = new RegExp(land_component, 'i');
+            }
+        }
+
+        // --- Height ---
+        if (minHeight) query.height = { ...query.height, $gte: minHeight };
+        if (req.query.height) query.height = req.query.height;
+
+        // --- Sorting ---
+        let sortOption = { created_at: -1 };
+        if (sortBy === 'age_asc') sortOption = { dob: -1 };
+        if (sortBy === 'age_desc') sortOption = { dob: 1 };
+
+        // --- Execute ---
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const users = await User.find(query)
+            .select('username first_name last_name profilePhoto photos bio dob religion city state height occupation land_area property_types')
+            .sort(sortOption)
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const total = await User.countDocuments(query);
+
+        // --- Map Display Data ---
+        const data = await Promise.all(users.map(async user => {
+            let age = null;
+            if (user.dob) {
+                const diff = Date.now() - user.dob.getTime();
+                age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+            }
+
+            // Get Profile Photo URL (Presigned)
+            let profileUrl = user.profilePhoto;
+
+            // If profilePhoto is NOT an external URL (Cloudinary) but an S3 path/key logic? 
+            // Current upload logic sets user.profilePhoto = url (which was CDN_URL/key).
+            // We need to extract key to resign it.
+
+            // Better logic: use user.photos find isProfile
+            const profilePhotoObj = user.photos?.find(p => p.url === user.profilePhoto) || (user.photos?.[0]);
+
+            if (profilePhotoObj && profilePhotoObj.key) {
+                const signed = await getPreSignedUrl(profilePhotoObj.key);
+                if (signed) profileUrl = signed;
+            }
+
+            return {
+                _id: user._id,
+                username: user.username,
+                displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username,
+                profilePhoto: profileUrl || null,
+                age,
+                religion: user.religion,
+                city: user.city,
+                state: user.state,
+                occupation: user.occupation,
+                land_area: user.land_area
+            };
+        }));
+
+        res.status(200).json({
+            success: true,
+            data,
+            pagination: {
+                total,
+                page: parseInt(page),
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+
+    } catch (error) {
+        logger.error('Search Users Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Upload Photos (S3 Twin-Upload)
 // @route   POST /api/users/upload-photos
 // @access  Private
 exports.uploadPhotos = async (req, res) => {
@@ -247,7 +307,6 @@ exports.uploadPhotos = async (req, res) => {
             return res.status(400).json({ message: 'No files uploaded' });
         }
 
-        // Limit check
         const user = await User.findById(req.user.id);
         if (user.photos.length + req.files.length > 10) {
             return res.status(400).json({ message: 'Maximum 10 photos allowed' });
@@ -255,23 +314,63 @@ exports.uploadPhotos = async (req, res) => {
 
         const photoData = [];
 
-        // Process each uploaded file
-        // Process each uploaded file
+        // Helper to upload buffer to S3
+        const uploadToS3 = async (buffer, key) => {
+            try {
+                logger.info(`Uploading to S3: ${key}`);
+                const command = new PutObjectCommand({
+                    Bucket: BUCKET_NAME,
+                    Key: key,
+                    Body: buffer,
+                    ContentType: 'image/webp',
+                });
+                await s3Client.send(command);
+                logger.info(`S3 Upload Success: ${key}`);
+                return `${CDN_URL}/${key}`;
+            } catch (err) {
+                logger.error(`S3 Upload Failed for ${key}`, { error: err.message, stack: err.stack });
+                throw err;
+            }
+        };
+
         for (const file of req.files) {
-            // Compress the image buffer
-            const compressedBuffer = await compressImage(file.buffer);
+            const fileId = uuidv4();
+            const folderPrefix = 'weedingzon/users'; // Based on provided ARN path
+            const originalKey = `${folderPrefix}/${user._id}/${fileId}_orig.webp`;
+            const blurredKey = `${folderPrefix}/${user._id}/${fileId}_blur.webp`;
 
-            const b64 = compressedBuffer.toString('base64');
-            const dataURI = 'data:image/webp;base64,' + b64;
+            // 1. Process Original (Watermarked)
+            // Resize to max 1920x1080 to save space, Convert to WebP
+            // Add Watermark ("WeddingZon" text bottom right)
+            const originalBuffer = await sharp(file.buffer)
+                .resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
+                .composite([{
+                    input: Buffer.from(`
+                        <svg width="300" height="100">
+                            <text x="95%" y="90%" font-family="Arial" font-size="24" fill="white" fill-opacity="0.5" text-anchor="end">WeddingZon</text>
+                        </svg>
+                     `),
+                    gravity: 'southeast'
+                }])
+                .webp({ quality: 80 })
+                .toBuffer();
 
-            const result = await cloudinary.uploader.upload(dataURI, {
-                folder: 'weddingzon/users',
-                resource_type: 'image',
-            });
+            const originalUrl = await uploadToS3(originalBuffer, originalKey);
+
+            // 2. Process Blurred (For Restricted Access)
+            // Resize small -> Blur -> WebP Low Quality
+            const blurredBuffer = await sharp(file.buffer)
+                .resize({ width: 400 }) // Smaller for blur
+                .blur(20)               // Sigma 20
+                .webp({ quality: 20 })
+                .toBuffer();
+
+            const blurredUrl = await uploadToS3(blurredBuffer, blurredKey);
 
             photoData.push({
-                url: result.secure_url,
-                publicId: result.public_id,
+                url: originalUrl,
+                blurredUrl: blurredUrl,
+                key: originalKey, // Store main key for deletion reference
                 isProfile: false,
                 order: user.photos.length + photoData.length
             });
@@ -286,25 +385,33 @@ exports.uploadPhotos = async (req, res) => {
         }
 
         await user.save();
+        logger.info(`S3 Photos Uploaded: ${req.user.username} (${req.files.length} files)`);
 
-        logger.info(`Photos Uploaded: ${req.user.username} (${req.files.length} files)`);
+        // Generate Presigned URLs for the response so frontend can display them immediately
+        const responsePhotos = await Promise.all(user.photos.map(async (p) => {
+            const pObj = p.toObject();
+            if (pObj.key) {
+                const signed = await getPreSignedUrl(pObj.key);
+                if (signed) pObj.url = signed;
+            }
+            return pObj;
+        }));
 
         res.status(200).json({
             success: true,
             message: 'Photos uploaded',
-            data: user.photos
+            data: responsePhotos
         });
 
     } catch (error) {
-        logger.error('Upload Error', { user: req.user.username, error: error.message });
+        logger.error('S3 Upload Error', { user: req.user.username, error: error.message });
         res.status(500).json({ message: 'Upload failed' });
     }
 };
 
-// @desc    Get User By Username (Public/Private based on logic)
+// @desc    Get User By Username
 // @route   GET /api/users/:username
-// @access  Private (or Public?) 
-// Hooc used getUserByUsername from auth.controller - sticking to user.controller here for cleaner split
+// @access  Private 
 exports.getUserProfile = async (req, res) => {
     try {
         const user = await User.findOne({ username: req.params.username })
@@ -312,10 +419,28 @@ exports.getUserProfile = async (req, res) => {
 
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Apply logic similar to GetFeed for viewing permissions if needed
-        // For now return basic profile
-        res.status(200).json(user);
+        // Presign Photos
+        const userObj = user.toObject();
+        if (userObj.photos && userObj.photos.length > 0) {
+            userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
+                let signedUrl = null;
+                if (photo.key) {
+                    signedUrl = await getPreSignedUrl(photo.key);
+                }
+                return { ...photo, url: signedUrl || photo.url };
+            }));
+
+            // Update profilePhoto link if needed
+            // (Assuming profilePhoto string matches one of the photos, update it to signed version)
+            const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
+            if (profilePhotoObj) {
+                userObj.profilePhoto = profilePhotoObj.url;
+            }
+        }
+
+        res.status(200).json(userObj);
     } catch (error) {
+        logger.error('Get Profile Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -328,7 +453,6 @@ exports.deletePhoto = async (req, res) => {
         const user = await User.findById(req.user.id);
         const photoId = req.params.photoId;
 
-        // Find photo
         const photoIndex = user.photos.findIndex(p => p._id.toString() === photoId);
         if (photoIndex === -1) {
             return res.status(404).json({ message: 'Photo not found' });
@@ -336,17 +460,31 @@ exports.deletePhoto = async (req, res) => {
 
         const photo = user.photos[photoIndex];
 
-        // Remove from Cloudinary
-        if (photo.publicId) {
-            await cloudinary.uploader.destroy(photo.publicId);
-        }
+        // Delete from S3
+        if (photo.key) {
+            // Delete Original
+            await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: photo.key }));
 
-        // Remove from array
+            // Delete Blurred (Infer key from original if strictly named, or just skip if not stored. 
+            // Our logic uses {key}_orig.webp vs {key}_blur.webp, but we stored 'key' as the whole path.
+            // Let's try to derive it to ensure clean up.
+            if (photo.key.includes('_orig.webp')) {
+                const blurKey = photo.key.replace('_orig.webp', '_blur.webp');
+                try {
+                    await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: blurKey }));
+                } catch (e) {
+                    logger.warn('Failed to delete blur key', { key: blurKey });
+                }
+            }
+        }
+        // Backward compat: Cloudinary
+        // else if (photo.publicId) { ... } 
+
         user.photos.splice(photoIndex, 1);
 
-        // If deleted photo was profile photo, set new one
+        // Reset profile photo if needed
         if (photo.isProfile) {
-            user.profilePhoto = null; // Reset first
+            user.profilePhoto = null;
             if (user.photos.length > 0) {
                 user.photos[0].isProfile = true;
                 user.profilePhoto = user.photos[0].url;
@@ -354,15 +492,24 @@ exports.deletePhoto = async (req, res) => {
         }
 
         await user.save();
+        // Generate Presigned URLs for response
+        const responsePhotos = await Promise.all(user.photos.map(async (p) => {
+            const pObj = p.toObject();
+            if (pObj.key) {
+                const signed = await getPreSignedUrl(pObj.key);
+                if (signed) pObj.url = signed;
+            }
+            return pObj;
+        }));
 
         res.status(200).json({
             success: true,
             message: 'Photo deleted',
-            data: user.photos
+            data: responsePhotos
         });
 
     } catch (error) {
-        logger.error('Delete Photo Error', { user: req.user.username, photoId: req.params.photoId, error: error.message });
+        logger.error('Delete Photo Error', { user: req.user.username, error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -380,19 +527,26 @@ exports.setProfilePhoto = async (req, res) => {
             return res.status(404).json({ message: 'Photo not found' });
         }
 
-        // Reset all to false
         user.photos.forEach(p => p.isProfile = false);
-
-        // Set target to true
         photo.isProfile = true;
         user.profilePhoto = photo.url;
 
         await user.save();
 
+        // Generate Presigned URLs for response
+        const responsePhotos = await Promise.all(user.photos.map(async (p) => {
+            const pObj = p.toObject();
+            if (pObj.key) {
+                const signed = await getPreSignedUrl(pObj.key);
+                if (signed) pObj.url = signed;
+            }
+            return pObj;
+        }));
+
         res.status(200).json({
             success: true,
             message: 'Profile photo updated',
-            data: user.photos
+            data: responsePhotos
         });
 
     } catch (error) {
