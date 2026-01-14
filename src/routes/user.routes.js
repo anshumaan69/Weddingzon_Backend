@@ -9,6 +9,7 @@ const { protect } = require('../middlewares/authMiddleware');
 
 router.use(protect);
 
+router.get('/search', require('../controllers/user.controller').searchUsers);
 router.get('/feed', getFeed);
 router.post('/upload-photos', upload.array('photos', 10), uploadPhotos);
 router.get('/:username', getUserProfile);

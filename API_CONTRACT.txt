@@ -8,6 +8,89 @@ INTRODUCTION
 ------------
 This API powers the WeddingZon platform, facilitating user onboarding, feed interactions, photo management, and administrative oversight. The API uses RESTful principles and JSON for data exchange.
 
+    This API powers the WeddingZon platform, facilitating user onboarding, feed interactions, photo management, and administrative oversight. The API uses RESTful principles and JSON for data exchange.
+
+DATA MODELS
+-----------
+User Schema (MongoDB):
+{
+  "_id": "ObjectId",
+  "username": { "type": "String", "unique": true, "trim": true },
+  "email": { "type": "String", "unique": true, "sparse": true },
+  "phone": { "type": "String", "unique": true, "sparse": true },
+  "auth_provider": { "type": "String", "enum": ["google", "local", "google_phone"], "default": "local" },
+  "role": { 
+    "type": "String", 
+    "enum": ["user", "member", "vendor", "franchise", "bride", "groom"], 
+    "default": "user",
+    "description": "'member' is the standard role for users seeking partners. 'bride'/'groom' are legacy."
+  },
+  "admin_role": { "type": "String", "enum": ["super_admin", "admin"], "default": null },
+  "is_phone_verified": { "type": "Boolean", "default": false },
+  "is_profile_complete": { "type": "Boolean", "default": false },
+  "status": { "type": "String", "enum": ["active", "banned", "suspended"], "default": "active" },
+  
+  // Basic Details
+  "first_name": "String",
+  "last_name": "String",
+  "dob": "Date",
+  "gender": { "type": "String", "enum": ["Male", "Female", "Other"] },
+  "created_for": "String",
+  "height": "String",
+  "marital_status": "String",
+  "mother_tongue": "String",
+  "disability": "String",
+  "aadhar_number": "String",
+  "blood_group": "String",
+
+  // Location
+  "country": "String",
+  "state": "String",
+  "city": "String",
+
+  // Family
+  "father_status": "String",
+  "mother_status": "String",
+  "brothers": "Number",
+  "sisters": "Number",
+  "family_status": "String",
+  "family_type": "String",
+  "family_values": "String",
+  "annual_income": "String",
+  "family_location": "String",
+
+  // Education & Career
+  "highest_education": "String",
+  "educational_details": "String",
+  "occupation": "String",
+  "employed_in": "String",
+  "personal_income": "String",
+  "working_sector": "String",
+  "working_location": "String",
+
+  // Religion & Lifestyle
+  "religion": "String",
+  "community": "String",
+  "sub_community": "String",
+  "appearance": "String",
+  "living_status": "String",
+  "physical_status": "String",
+  "eating_habits": "String",
+  "smoking_habits": "String",
+  "drinking_habits": "String",
+  "hobbies": ["String"],
+
+  // Other
+  "about_me": "String",
+  "profilePhoto": "String (URL)",
+  "photos": [{
+     "url": "String",
+     "publicId": "String",
+     "isProfile": "Boolean",
+     "restricted": "Boolean"
+  }]
+}
+
 AUTHENTICATION
 --------------
 - Method: HTTP-Only Cookies (JWT)
