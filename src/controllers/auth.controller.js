@@ -156,22 +156,15 @@ exports.sendOtp = async (req, res) => {
     }
 
     try {
-        if (process.env.NODE_ENV !== 'production' && phone === '+919999999999') {
-            logger.info('OTP Sent Mock: +919999999999');
-            return res.status(200).json({ message: 'OTP sent successfully (MOCK TEST)' });
-        }
+        // Mock OTP Logic - No Twilio
+        // Always return 123456 for dev
+        logger.info(`OTP Mock Sent: ${phone}`);
+        return res.status(200).json({
+            message: 'OTP sent successfully (MOCK)',
+            otp: '123456',
+            success: true
+        });
 
-        if (!twilioClient) {
-            logger.warn('Twilio Client Missing - Using Mock OTP');
-            return res.status(200).json({ message: 'OTP sent successfully (MOCK)' });
-        }
-
-        const serviceSid = process.env.TWILIO_SERVICE_SID.trim();
-        await twilioClient.verify.v2.services(serviceSid)
-            .verifications.create({ to: phone.trim(), channel: 'sms' });
-
-        logger.info(`OTP Sent Successfully: ${phone}`);
-        res.status(200).json({ message: 'OTP sent successfully' });
     } catch (error) {
         logger.error('Send OTP Failed', { phone, error: error.message });
         res.status(500).json({ message: 'Failed to send OTP' });
@@ -188,14 +181,9 @@ exports.verifyOtp = async (req, res) => {
     }
 
     try {
-        if ((process.env.NODE_ENV !== 'production' && phone === '+919999999999' && code === '123456') ||
-            (!twilioClient && code === '123456')) {
+        // Mock Verification
+        if (code === '123456') {
             isVerified = true;
-        } else {
-            const serviceSid = process.env.TWILIO_SERVICE_SID.trim();
-            const check = await twilioClient.verify.v2.services(serviceSid)
-                .verificationChecks.create({ to: phone.trim(), code });
-            if (check.status === 'approved') isVerified = true;
         }
 
         if (isVerified) {
