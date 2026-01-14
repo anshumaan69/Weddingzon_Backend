@@ -142,19 +142,44 @@ const clearCookies = (req, res) => {
 // --- Controllers ---
 
 exports.googleAuth = async (req, res) => {
-    const { code, redirect_uri } = req.body;
+    const { code, redirect_uri, idToken } = req.body;
     try {
-        const { tokens } = await client.getToken({
-            code,
-            redirect_uri: redirect_uri || process.env.CALLBACK_URL
-        });
+        let payload;
 
-        client.setCredentials(tokens);
-        const ticket = await client.verifyIdToken({
-            idToken: tokens.id_token,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
-        const payload = ticket.getPayload();
+        // Known Web Client ID from Flutter App
+        const FLUTTER_CLIENT_ID = '294108253572-oih80rbj00t8rrntjincau7hi6cbji4f.apps.googleusercontent.com';
+        const validAudiences = [process.env.GOOGLE_CLIENT_ID, FLUTTER_CLIENT_ID];
+
+        if (idToken) {
+            // Case 1: Client sent ID Token directly (Implicit Flow / Mobile default)
+            console.log('[AUTH] Verifying ID Token...');
+            console.log('[AUTH] Valid Audiences:', validAudiences);
+            try {
+                const ticket = await client.verifyIdToken({
+                    idToken: idToken,
+                    audience: validAudiences,
+                });
+                payload = ticket.getPayload();
+                console.log('[AUTH] Token verified. Payload:', payload);
+            } catch (verifyError) {
+                console.error('[AUTH] ID Token Verification Failed:', verifyError.message);
+                throw verifyError;
+            }
+        } else {
+            // Case 2: Authorization Code Flow
+            const { tokens } = await client.getToken({
+                code,
+                redirect_uri: redirect_uri || process.env.CALLBACK_URL
+            });
+
+            client.setCredentials(tokens);
+            const ticket = await client.verifyIdToken({
+                idToken: tokens.id_token,
+                audience: process.env.GOOGLE_CLIENT_ID,
+            });
+            payload = ticket.getPayload();
+        }
+
         const { email, given_name, family_name, picture } = payload;
 
         let user = await User.findOne({ email });
@@ -162,12 +187,8 @@ exports.googleAuth = async (req, res) => {
         if (!user) {
             let baseUsername = email.split('@')[0];
             let username = baseUsername;
-            let counter = 1;
 
-            // Simple check to ensure uniqueness (best effort or iterative)
-            // Ideally we loop, but for now let's append a random string to be safe
-            // or just use email handle if unique. 
-            // Let's just append random 4 digits to ensure uniqueness for Google Auth users.
+            // Generate unique username
             const randomSuffix = Math.floor(1000 + Math.random() * 9000);
             username = `${baseUsername}${randomSuffix}`;
 
@@ -176,8 +197,14 @@ exports.googleAuth = async (req, res) => {
                 first_name: given_name,
                 last_name: family_name,
                 auth_provider: 'google',
-                username: username // Set generated username
+                username: username,
+                avatar: picture,
+                is_profile_complete: false // Consistent init
             });
+            await user.save();
+        } else if (!user.avatar) {
+            // Update avatar if missing
+            user.avatar = picture;
             await user.save();
         }
 
@@ -192,8 +219,8 @@ exports.googleAuth = async (req, res) => {
         logger.info(`Google Auth Success: ${email}`);
         res.status(200).json({ success: true, user, accessToken, refreshToken });
     } catch (error) {
-        logger.error('Google Auth Failed', { error: error.message });
-        res.status(401).json({ message: 'Authentication failed' });
+        logger.error('Google Auth Failed', { error: error.message, stack: error.stack });
+        res.status(401).json({ message: 'Authentication failed: ' + error.message });
     }
 };
 
