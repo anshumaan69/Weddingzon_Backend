@@ -22,7 +22,7 @@ const resolveUser = async (identifier) => {
 exports.sendConnectionRequest = async (req, res) => {
     try {
         const { targetUsername } = req.body;
-        const requesterId = req.user.id;
+        const requesterId = req.user._id.toString();
 
         if (!targetUsername) return res.status(400).json({ message: 'Target username is required' });
 
@@ -72,7 +72,7 @@ exports.acceptConnectionRequest = async (req, res) => {
         const request = await ConnectionRequest.findById(requestId);
         if (!request) return res.status(404).json({ message: 'Request not found' });
 
-        if (request.recipient.toString() !== req.user.id) {
+        if (request.recipient.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
@@ -96,7 +96,7 @@ exports.rejectConnectionRequest = async (req, res) => {
         const request = await ConnectionRequest.findById(requestId);
         if (!request) return res.status(404).json({ message: 'Request not found' });
 
-        if (request.recipient.toString() !== req.user.id) {
+        if (request.recipient.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
@@ -119,7 +119,7 @@ exports.rejectConnectionRequest = async (req, res) => {
 exports.getIncomingRequests = async (req, res) => {
     try {
         res.set('Cache-Control', 'no-store'); // Disable caching
-        const myId = req.user.id;
+        const myId = req.user._id.toString();
 
         const [connectionRequests, photoRequests, detailsRequests] = await Promise.all([
             ConnectionRequest.find({ recipient: myId, status: 'pending' })
@@ -165,7 +165,7 @@ exports.getIncomingRequests = async (req, res) => {
 exports.requestDetailsAccess = async (req, res) => {
     try {
         const { targetUsername } = req.body;
-        const requesterId = req.user.id;
+        const requesterId = req.user._id.toString();
 
         if (!targetUsername) return res.status(400).json({ message: 'Target username is required' });
 
@@ -212,7 +212,7 @@ exports.respondToPhotoRequest = async (req, res) => {
         const request = await PhotoAccessRequest.findById(requestId);
 
         if (!request) return res.status(404).json({ message: 'Request not found' });
-        if (request.targetUser.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
+        if (request.targetUser.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Not authorized' });
 
         if (action === 'grant') {
             request.status = 'granted';
@@ -241,7 +241,7 @@ exports.respondToDetailsRequest = async (req, res) => {
         const request = await DetailsAccessRequest.findById(requestId);
 
         if (!request) return res.status(404).json({ message: 'Request not found' });
-        if (request.targetUser.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
+        if (request.targetUser.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Not authorized' });
 
         if (action === 'grant') {
             request.status = 'granted';
@@ -268,7 +268,7 @@ exports.respondToDetailsRequest = async (req, res) => {
 exports.getConnections = async (req, res) => {
     // ... (Keep existing implementation)
     try {
-        const myId = req.user.id;
+        const myId = req.user._id.toString();
         // Find requests where I am requester OR recipient AND status is accepted
         const connections = await ConnectionRequest.find({
             $or: [
@@ -305,7 +305,7 @@ exports.getConnections = async (req, res) => {
 exports.requestPhotoAccess = async (req, res) => {
     try {
         const { targetUsername } = req.body;
-        const requesterId = req.user.id;
+        const requesterId = req.user._id.toString();
 
         if (!targetUsername) return res.status(400).json({ message: 'Target username is required' });
 
@@ -358,7 +358,7 @@ exports.requestPhotoAccess = async (req, res) => {
 exports.checkConnectionStatus = async (req, res) => {
     try {
         const { username } = req.params;
-        const requesterId = req.user.id;
+        const requesterId = req.user._id.toString();
 
         let targetUser;
         try {
@@ -401,7 +401,7 @@ exports.checkConnectionStatus = async (req, res) => {
 exports.cancelRequest = async (req, res) => {
     try {
         const { targetUsername, type } = req.body;
-        const requesterId = req.user.id;
+        const requesterId = req.user._id.toString();
 
         if (!targetUsername || !type) return res.status(400).json({ message: 'Target username and type are required' });
 

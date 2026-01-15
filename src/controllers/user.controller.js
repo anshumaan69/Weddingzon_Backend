@@ -61,11 +61,11 @@ exports.getFeed = async (req, res) => {
         const visibleUserIds = visibleUsers.map(u => u._id);
         const [photoRequests, connectionRequests] = await Promise.all([
             PhotoAccessRequest.find({
-                requester: req.user.id,
+                requester: req.user._id,
                 targetUser: { $in: visibleUserIds }
             }).select('targetUser status').lean(),
             ConnectionRequest.find({
-                requester: req.user.id,
+                requester: req.user._id,
                 recipient: { $in: visibleUserIds }
             }).select('recipient status').lean()
         ]);
@@ -328,7 +328,7 @@ exports.uploadPhotos = async (req, res) => {
             return res.status(400).json({ message: 'No files uploaded' });
         }
 
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user._id);
         if (user.photos.length + req.files.length > 10) {
             return res.status(400).json({ message: 'Maximum 10 photos allowed' });
         }
@@ -484,7 +484,7 @@ exports.getUserProfile = async (req, res) => {
 // @access  Private
 exports.deletePhoto = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user._id);
         const photoId = req.params.photoId;
 
         const photoIndex = user.photos.findIndex(p => p._id.toString() === photoId);
@@ -553,7 +553,7 @@ exports.deletePhoto = async (req, res) => {
 // @access  Private
 exports.setProfilePhoto = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user._id);
         const photoId = req.params.photoId;
 
         const photo = user.photos.find(p => p._id.toString() === photoId);

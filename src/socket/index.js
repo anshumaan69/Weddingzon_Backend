@@ -15,11 +15,13 @@ module.exports = (io) => {
             }
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            socket.user = await User.findById(decoded.id).select('-password');
-            if (!socket.user) return next(new Error('User not found'));
+            req.user = await User.findById(decoded.id).select('-password').lean();
+            if (!req.user) return next(new Error('User not found'));
 
+            socket.user = req.user;
             next();
         } catch (error) {
+            console.error('Socket Auth Middleware Error:', error);
             next(new Error('Authentication error'));
         }
     });

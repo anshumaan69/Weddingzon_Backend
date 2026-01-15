@@ -275,7 +275,7 @@ exports.registerDetails = async (req, res) => {
     } = req.body;
 
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         if (first_name) user.first_name = first_name;
@@ -438,7 +438,7 @@ exports.getMe = async (req, res) => {
         // Cache for 60 seconds (Client Side) - Reduces repeat fetches on navigation
         res.set('Cache-Control', 'private, max-age=60');
 
-        const user = await User.findById(req.user.id).lean(); // Optimized with lean()
+        const user = await User.findById(req.user._id).lean(); // Optimized with lean()
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         // Presign Photos for GetMe

@@ -238,25 +238,70 @@ Error (4xx/5xx):
    GET /users/feed
    Desc: Fetch a paginated, shuffled feed of potential matches.
    Query Params:
-     - cursor: (Optional) ID of the last user seen in previous batch.
+    - cursor: (Optional) ID of the last user seen (for pagination).
+    
+    Response (200 OK):
+    {
+      "success": true,
+      "data": [
+        {
+          "_id": "65b...",
+          "username": "alice",
+          "profilePhoto": "https://s3... (Signed URL)",
+          "photos": [
+             { "url": "...", "isProfile": true, "restricted": false },
+             { "url": "...", "isProfile": false, "restricted": true } // Restricted photos are blurred
+          ],
+          "bio": "...",
+          "connectionStatus": "none" | "pending" | "accepted",
+          "photoRequestStatus": "none" | "pending" | "granted"
+        }
+      ],
+      "nextCursor": "65a1..."
+    }
+
+2. SEARCH USERS
+   GET /users/search
+   Desc: Search for users with extensive filtering capabilities.
+   Query Params:
+     - q: General text search (username, name, bio, city, occupation)
+     - minAge, maxAge: Age range (e.g., 25, 30)
+     - minHeight, maxHeight: Height range (e.g., 160)
+     - religion, community, mother_tongue: Cultural filters
+     - state, city: Location filters
+     - marital_status: "Never Married", "Divorced", etc.
+     - highest_education, occupation, annual_income: Professional filters
+     - eating_habits, smoking_habits, drinking_habits: Lifestyle
+     - land_component: Land area filter (e.g., "5+ acres")
+     - property_type: Property filter (e.g., "Agricultural")
+     - sortBy: "created_at" (default), "age_asc", "age_desc"
+     - page: 1 (default)
+     - limit: 20 (default)
 
    Response (200 OK):
    {
-     "success": true,
-     "data": [
-       {
-         "_id": "...",
-         "username": "alice",
-         "profilePhoto": "https://...",
-         "photos": [ ... ], // Restricted photos are blurred
-         "bio": "..."
-       },
-       ...
-     ],
-     "nextCursor": "65a1..."
+      "success": true,
+      "data": [
+        {
+          "_id": "...",
+          "username": "bob",
+          "displayName": "Bob Builder",
+          "profilePhoto": "...",
+          "age": 28,
+          "religion": "Christian",
+          "city": "Mumbai",
+          "occupation": "Engineer",
+          "land_area": "10 Acres"
+        }
+      ],
+      "pagination": {
+        "total": 50,
+        "page": 1,
+        "pages": 3
+      }
    }
 
-2. GET USER PROFILE
+3. GET USER PROFILE
    GET /users/:username
    Desc: Get full details of a specific user.
    
@@ -269,7 +314,7 @@ Error (4xx/5xx):
      "photos": [ ... ]
    }
 
-3. UPLOAD PHOTOS
+4. UPLOAD PHOTOS
    POST /users/upload-photos
    Desc: Upload up to 10 photos to the user's gallery.
    Content-Type: multipart/form-data
@@ -283,11 +328,11 @@ Error (4xx/5xx):
      "message": "Photos uploaded",
      "data": [
        { "url": "...", "isProfile": true, "restricted": false },
-       ...
+       { "url": "...", "isProfile": false, "restricted": true }
      ]
    }
 
-4. DELETE PHOTO
+5. DELETE PHOTO
    DELETE /users/photos/:photoId
    Desc: Remove a specific photo from gallery.
    

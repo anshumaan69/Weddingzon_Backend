@@ -1,7 +1,9 @@
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const logger = require('../utils/logger');
-const { uploadToS3, getSignedFileUrl } = require('../utils/s3'); // Assuming you have this utility
+
+const { uploadToS3, getSignedFileUrl } = require('../utils/s3');
+const { chatS3Client, s3Client } = require('../config/s3'); // Import Chat S3 Client
 
 // @desc    Get Chat History
 // @route   GET /api/chat/history/:userId
@@ -9,7 +11,7 @@ const { uploadToS3, getSignedFileUrl } = require('../utils/s3'); // Assuming you
 exports.getChatHistory = async (req, res) => {
     try {
         const { userId } = req.params;
-        const myId = req.user.id;
+        const myId = req.user._id.toString();
         const { page = 1, limit = 50 } = req.query;
 
         // Deterministic Conversation ID
@@ -31,7 +33,7 @@ exports.getChatHistory = async (req, res) => {
         // Sign the image URLs
         const signedMessages = await Promise.all(messages.map(async (msg) => {
             if (msg.type === 'image' && msg.mediaUrl) {
-                msg.mediaUrl = await getSignedFileUrl(msg.mediaUrl);
+                msg.mediaUrl = await getSignedFileUrl(msg.mediaUrl, chatS3Client);
             }
             return msg;
         }));
@@ -49,7 +51,7 @@ exports.getChatHistory = async (req, res) => {
 exports.markAsRead = async (req, res) => {
     try {
         const { senderId } = req.body;
-        const myId = req.user.id;
+        const myId = req.user._id.toString();
 
         await Chat.updateMany(
             { sender: senderId, receiver: myId, read: false },
@@ -68,7 +70,7 @@ exports.markAsRead = async (req, res) => {
 // @access  Private
 exports.getRecentConversations = async (req, res) => {
     try {
-        const myId = req.user.id; // Use ObjectId in aggregation if needed
+        const myId = req.user._id.toString(); // Use ObjectId in aggregation if needed
         const mongoose = require('mongoose');
         const myObjectId = new mongoose.Types.ObjectId(myId);
 
@@ -143,12 +145,15 @@ exports.uploadChatImage = async (req, res) => {
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
+        const chatBucketName = process.env.AWS_BUCKET_NAME;
+
         logger.info(`Uploading File: ${req.file.originalname} (${req.file.mimetype}, ${req.file.size} bytes)`);
-        const result = await uploadToS3(req.file, 'chat-images');
+
+        const result = await uploadToS3(req.file, 'weedingzon/chat', s3Client, chatBucketName);
         logger.info(`Upload Success: ${result.Location}`);
 
         // Generate a signed URL for immediate use
-        const signedUrl = await getSignedFileUrl(result.Key);
+        const signedUrl = await getSignedFileUrl(result.Key, s3Client, chatBucketName);
 
         res.status(200).json({ success: true, url: signedUrl });
     } catch (error) {

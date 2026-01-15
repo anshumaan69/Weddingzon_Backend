@@ -1,33 +1,31 @@
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const s3Client = require('../config/s3');
+const { s3Client: defaultClient } = require('../config/s3');
+const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3'); // Added PutObjectCommand back since it was missing? No, it was used in uploadlocal. Wait, I need it here.
 const crypto = require('crypto');
 const logger = require('./logger');
 const Cache = require('./cache'); // Import central cache
 
-const BUCKET_NAME = process.env.AWS_BUCKET_NAME; // Ensure this is available
-
-exports.uploadToS3 = async (file, folder = 'uploads') => {
+exports.uploadToS3 = async (file, folder = 'uploads', client = defaultClient, bucketName = process.env.AWS_BUCKET_NAME) => {
     const fileExtension = file.originalname.split('.').pop();
     const fileName = `${folder}/${crypto.randomBytes(16).toString('hex')}.${fileExtension}`;
 
     const command = new PutObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME,
+        Bucket: bucketName,
         Key: fileName,
         Body: file.buffer,
         ContentType: file.mimetype,
-        // ACL: 'public-read' // Removed as per authorized access plan
     });
 
-    await s3Client.send(command);
+    await client.send(command);
 
     // Return the URL and Key
     return {
-        Location: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-1'}.amazonaws.com/${fileName}`,
+        Location: `https://${bucketName}.s3.${process.env.AWS_REGION || 'ap-south-1'}.amazonaws.com/${fileName}`,
         Key: fileName
     };
 };
 
-exports.getSignedFileUrl = async (fileUrlOrKey) => {
+exports.getSignedFileUrl = async (fileUrlOrKey, client = defaultClient, bucketName = process.env.AWS_BUCKET_NAME) => {
     try {
         if (!fileUrlOrKey) return null;
 
@@ -35,7 +33,7 @@ exports.getSignedFileUrl = async (fileUrlOrKey) => {
 
         // If it's a full URL, extract the key
         if (fileUrlOrKey.startsWith('http')) {
-            const bucketDomain = `${process.env.AWS_BUCKET_NAME}.s3`;
+            const bucketDomain = `${bucketName}.s3`;
             if (fileUrlOrKey.includes(bucketDomain)) {
                 // Split by .amazonaws.com/ to get the key reliably
                 const parts = fileUrlOrKey.split('.amazonaws.com/');
@@ -46,12 +44,12 @@ exports.getSignedFileUrl = async (fileUrlOrKey) => {
         }
 
         const command = new GetObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
+            Bucket: bucketName,
             Key: key,
         });
 
         // Sign the URL, valid for 1 hour
-        const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+        const signedUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
         return signedUrl;
 
     } catch (error) {
@@ -69,9 +67,9 @@ exports.getPreSignedUrl = async (key) => {
     if (cachedUrl) return cachedUrl;
 
     try {
-        const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
+        const command = new GetObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: key });
         // URL valid for 1 hour (3600s)
-        const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+        const url = await getSignedUrl(defaultClient, command, { expiresIn: 3600 });
 
         // 2. Set Cache (55 mins to be safe)
         Cache.set(key, url, 1000 * 60 * 55);
