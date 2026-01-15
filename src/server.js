@@ -58,8 +58,25 @@ app.use((req, res, next) => {
 });
 
 // CORS Configuration
+// CORS Configuration
+const allowedOrigins = [process.env.CLIENT_URL || 'http://localhost:3000'];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // In Dev: Allow any local network IP
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 
@@ -90,7 +107,17 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Allow requests with no origin
+      if (!origin) return callback(null, true);
+      // In Dev: Allow any local network IP
+      if (process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+      const allowed = process.env.CLIENT_URL || 'http://localhost:3000';
+      if (origin === allowed) return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST']
   }
