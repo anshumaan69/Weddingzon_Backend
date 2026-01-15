@@ -2,6 +2,7 @@ const { GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const s3Client = require('../config/s3');
 const logger = require('../utils/logger');
+const Cache = require('../utils/cache'); // Import Cache
 // ... other imports
 
 const BUCKET_NAME = process.env.AWS_BUCKET_NAME || 'weddingzon-uploads';
@@ -9,9 +10,18 @@ const BUCKET_NAME = process.env.AWS_BUCKET_NAME || 'weddingzon-uploads';
 // Helper: Generate Presigned URL
 const getPreSignedUrl = async (key) => {
     if (!key) return null;
+
+    // 1. Check Cache
+    const cachedUrl = Cache.get(key);
+    if (cachedUrl) return cachedUrl;
+
     try {
         const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
-        return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+        const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+
+        // 2. Set Cache (55 mins)
+        Cache.set(key, url, 1000 * 60 * 55);
+        return url;
     } catch (error) {
         logger.error('Presign URL Error', { key, error: error.message });
         return null;
@@ -474,11 +484,12 @@ exports.logout = async (req, res) => {
 
 exports.getMe = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).lean(); // Optimized with lean()
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         // Presign Photos for GetMe
-        const userObj = user.toObject();
+        // const userObj = user.toObject(); // Not needed with lean()
+        const userObj = user;
         if (userObj.photos && userObj.photos.length > 0) {
             userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
                 let signedUrl = null;

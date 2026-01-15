@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const PhotoAccessRequest = require('../models/PhotoAccessRequest');
+const ConnectionRequest = require('../models/ConnectionRequest');
 // const cloudinary = require('../config/cloudinary'); // Deprecated
 const s3Client = require('../config/s3');
 const { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
@@ -7,6 +8,7 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const Cache = require('../utils/cache'); // Import Cache
 
 const BUCKET_NAME = process.env.AWS_BUCKET_NAME || 'weddingzon-uploads';
 const CDN_URL = process.env.AWS_CDN_URL || `https://${BUCKET_NAME}.s3.amazonaws.com`;
@@ -14,10 +16,20 @@ const CDN_URL = process.env.AWS_CDN_URL || `https://${BUCKET_NAME}.s3.amazonaws.
 // Helper: Generate Presigned URL
 const getPreSignedUrl = async (key) => {
     if (!key) return null;
+
+    // 1. Check Cache
+    const cachedUrl = Cache.get(key);
+    if (cachedUrl) return cachedUrl;
+
     try {
         const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
         // URL valid for 1 hour (3600s)
-        return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+        const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+
+        // 2. Set Cache (55 mins)
+        Cache.set(key, url, 1000 * 60 * 55);
+
+        return url;
     } catch (error) {
         logger.error('Presign URL Error', { key, error: error.message });
         return null;
@@ -48,11 +60,12 @@ exports.getFeed = async (req, res) => {
             query._id = { ...query._id, $lt: cursor };
         }
 
-        // 1. Fetch Candidates
+        // 1. Fetch Candidates (Optimized with lean())
         let users = await User.find(query)
             .select('username first_name last_name profilePhoto photos bio created_at role')
             .sort({ _id: -1 })
-            .limit(FETCH_SIZE);
+            .limit(FETCH_SIZE)
+            .lean();
 
         // Capture next cursor
         const nextCursor = users.length > 0 ? users[users.length - 1]._id : null;
@@ -63,47 +76,56 @@ exports.getFeed = async (req, res) => {
         // 3. Slice Logic
         const visibleUsers = users.slice(0, SHOW_SIZE);
 
-        // 4. Process Permissions (Admin/Connections)
+        // 4. Process Permissions & Statuses (Admin/Connections/Photos)
         let grantedUserIds = new Set();
         const isAdmin = ['admin', 'superadmin'].includes(req.user.role);
 
-        if (!isAdmin && visibleUsers.length > 0) {
-            const grantedRequests = await PhotoAccessRequest.find({
+        // Bulk Fetch Statuses
+        const visibleUserIds = visibleUsers.map(u => u._id);
+        const [photoRequests, connectionRequests] = await Promise.all([
+            PhotoAccessRequest.find({
                 requester: req.user.id,
-                status: 'granted',
-                targetUser: { $in: visibleUsers.map(u => u._id) }
-            }).select('targetUser');
-            grantedRequests.forEach(req => grantedUserIds.add(req.targetUser.toString()));
-        }
+                targetUser: { $in: visibleUserIds }
+            }).select('targetUser status').lean(),
+            ConnectionRequest.find({
+                requester: req.user.id,
+                recipient: { $in: visibleUserIds }
+            }).select('recipient status').lean()
+        ]);
+
+        // Create Maps for fast lookup
+        const photoMap = new Map();
+        photoRequests.forEach(req => {
+            photoMap.set(req.targetUser.toString(), req.status);
+            if (req.status === 'granted') grantedUserIds.add(req.targetUser.toString());
+        });
+
+        const connectionMap = new Map();
+        connectionRequests.forEach(req => {
+            connectionMap.set(req.recipient.toString(), req.status);
+        });
 
         // 5. Map Data
         const feedData = await Promise.all(visibleUsers.map(async user => {
-            const userObj = user.toObject();
+            const userObj = user; // Already object due to lean()
             let photos = userObj.photos || [];
 
             // Sort photos: Profile first
             photos.sort((a, b) => (b.isProfile ? 1 : 0) - (a.isProfile ? 1 : 0));
 
             const hasAccess = isAdmin || grantedUserIds.has(userObj._id.toString());
+            const userIdStr = userObj._id.toString();
 
             // Process URLs (Presign)
             photos = await Promise.all(photos.map(async (photo, index) => {
                 // Determine if restricted
                 const isRestricted = !hasAccess && index !== 0 && photos.length > 1;
 
-                // If restricted, prefer blurred key, else original key
-                // Fallback: If blurredKey missing (legacy), strict-mode would hide it, but for now fallback to original key
-                // Note: 'key' in DB is always the original key. Use logic to verify.
-
+                // ... (Keep existing key/url logic)
                 let targetKey = photo.key;
                 if (isRestricted) {
-                    // Try to derive blurred key if not stored explicit value
-                    // Our upload logic stores: {key}_orig.webp. Blurred is {key}_blur.webp
                     if (photo.key && photo.key.includes('_orig.webp')) {
                         targetKey = photo.key.replace('_orig.webp', '_blur.webp');
-                    } else {
-                        // Legacy or unknown format: fallback to original key (User will see clear image)
-                        // For stricter security: targetKey = null; 
                     }
                 }
 
@@ -112,7 +134,6 @@ exports.getFeed = async (req, res) => {
                     signedUrl = await getPreSignedUrl(targetKey);
                 }
 
-                // If no S3 key (legacy cloudinary), keep original url
                 const finalUrl = signedUrl || photo.url;
 
                 return {
@@ -125,10 +146,14 @@ exports.getFeed = async (req, res) => {
             return {
                 _id: userObj._id,
                 username: userObj.username,
-                profilePhoto: userObj.profilePhoto, // This might need update if it's just a ref to photos[0]
+                first_name: userObj.first_name,
+                last_name: userObj.last_name,
+                profilePhoto: userObj.profilePhoto,
                 bio: userObj.bio,
                 photos: photos,
-                role: userObj.role
+                role: userObj.role,
+                connectionStatus: connectionMap.get(userIdStr) || 'none',
+                photoRequestStatus: photoMap.get(userIdStr) || 'none'
             };
         }));
 
