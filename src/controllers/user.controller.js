@@ -377,8 +377,11 @@ exports.uploadPhotos = async (req, res) => {
                 .resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
                 .composite([{
                     input: Buffer.from(`
-                        <svg width="300" height="100">
-                            <text x="95%" y="90%" font-family="Arial" font-size="24" fill="white" fill-opacity="0.5" text-anchor="end">WeddingZon</text>
+                        <svg width="500" height="100" viewBox="0 0 500 100">
+                            <!-- Drop Shadow for contrast -->
+                            <text x="95%" y="90%" font-family="sans-serif" font-weight="bold" font-size="48" fill="black" fill-opacity="0.5" text-anchor="end">WeddingZon</text>
+                            <!-- Main Text -->
+                            <text x="94.5%" y="89%" font-family="sans-serif" font-weight="bold" font-size="48" fill="white" fill-opacity="0.8" text-anchor="end">WeddingZon</text>
                         </svg>
                      `),
                     gravity: 'southeast'
