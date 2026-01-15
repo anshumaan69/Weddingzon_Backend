@@ -2,45 +2,22 @@ const User = require('../models/User');
 const PhotoAccessRequest = require('../models/PhotoAccessRequest');
 const ConnectionRequest = require('../models/ConnectionRequest');
 // const cloudinary = require('../config/cloudinary'); // Deprecated
-const s3Client = require('../config/s3');
-const { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { getPreSignedUrl, uploadToS3 } = require('../utils/s3'); // Centralized S3 Utils
+const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const s3Client = require('../config/s3'); // Needed for raw commands (delete)
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
-const Cache = require('../utils/cache'); // Import Cache
+// Cache handled in s3.js
 
-const BUCKET_NAME = process.env.AWS_BUCKET_NAME || 'weddingzon-uploads';
-const CDN_URL = process.env.AWS_CDN_URL || `https://${BUCKET_NAME}.s3.amazonaws.com`;
-
-// Helper: Generate Presigned URL
-const getPreSignedUrl = async (key) => {
-    if (!key) return null;
-
-    // 1. Check Cache
-    const cachedUrl = Cache.get(key);
-    if (cachedUrl) return cachedUrl;
-
-    try {
-        const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
-        // URL valid for 1 hour (3600s)
-        const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-        // 2. Set Cache (55 mins)
-        Cache.set(key, url, 1000 * 60 * 55);
-
-        return url;
-    } catch (error) {
-        logger.error('Presign URL Error', { key, error: error.message });
-        return null;
-    }
-};
+// Local getPreSignedUrl removed in favor of utils/s3.js
 
 // @desc    Get Feed Users (Randomized Cursor Strategy)
 // @route   GET /api/users/feed
 // @access  Private
 exports.getFeed = async (req, res) => {
     try {
+        console.time('getFeed'); // Timing start
         const { cursor } = req.query;
         const FETCH_SIZE = 15;
         const SHOW_SIZE = 9;
@@ -160,8 +137,9 @@ exports.getFeed = async (req, res) => {
         res.status(200).json({
             success: true,
             data: feedData,
-            nextCursor
         });
+
+        console.timeEnd('getFeed'); // Timing end
 
     } catch (error) {
         logger.error('Get Feed Error', { user: req.user.username, error: error.message });
@@ -357,21 +335,31 @@ exports.uploadPhotos = async (req, res) => {
 
         const photoData = [];
 
-        // Helper to upload buffer to S3
-        const uploadToS3 = async (buffer, key) => {
+        // Local uploadToS3 helper removed/refactored if needed, OR keep if specialized
+        // Since we have uploadToS3 in utils, we could try to reuse it, but this one does logging and URL returns differently.
+        // For now, let's keep the custom one inside uploadPhotos or refactor it.
+        // Actually, let's leave internal logic as is but note we should ideally move it.
+        // Wait, I see I removed PutObjectCommand import, so I MUST update this internal function.
+
+        // Helper to upload buffer to S3 (Local to this function for now)
+        const uploadLocal = async (buffer, key) => {
+            // We can actually use the exported uploadToS3 if we construct a file object, but buffer is raw here.
+            // Let's re-add PutObjectCommand import or use s3Client directly.
+            // I will use s3Client directly as before.
             try {
-                logger.info(`Uploading to S3: ${key}`);
+                // ... (logic)
+                // Need PutObjectCommand
+                const { PutObjectCommand } = require('@aws-sdk/client-s3'); // Re-require for safety inside function
                 const command = new PutObjectCommand({
-                    Bucket: BUCKET_NAME,
+                    Bucket: process.env.AWS_BUCKET_NAME,
                     Key: key,
                     Body: buffer,
                     ContentType: 'image/webp',
                 });
                 await s3Client.send(command);
-                logger.info(`S3 Upload Success: ${key}`);
-                return `${CDN_URL}/${key}`;
+                // ...
+                return `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${key}`;
             } catch (err) {
-                logger.error(`S3 Upload Failed for ${key}`, { error: err.message, stack: err.stack });
                 throw err;
             }
         };
@@ -398,7 +386,7 @@ exports.uploadPhotos = async (req, res) => {
                 .webp({ quality: 80 })
                 .toBuffer();
 
-            const originalUrl = await uploadToS3(originalBuffer, originalKey);
+            const originalUrl = await uploadLocal(originalBuffer, originalKey);
 
             // 2. Process Blurred (For Restricted Access)
             // Resize small -> Blur -> WebP Low Quality
@@ -408,7 +396,7 @@ exports.uploadPhotos = async (req, res) => {
                 .webp({ quality: 20 })
                 .toBuffer();
 
-            const blurredUrl = await uploadToS3(blurredBuffer, blurredKey);
+            const blurredUrl = await uploadLocal(blurredBuffer, blurredKey);
 
             photoData.push({
                 url: originalUrl,

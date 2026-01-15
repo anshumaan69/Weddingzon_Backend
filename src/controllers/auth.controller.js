@@ -1,64 +1,13 @@
-const { GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const s3Client = require('../config/s3');
+const { getPreSignedUrl, uploadToS3 } = require('../utils/s3'); // Import centralized s3 utils
 const logger = require('../utils/logger');
-const Cache = require('../utils/cache'); // Import Cache
+// Cache already handled in s3.js
 // ... other imports
 
-const BUCKET_NAME = process.env.AWS_BUCKET_NAME || 'weddingzon-uploads';
-
-// Helper: Generate Presigned URL
-const getPreSignedUrl = async (key) => {
-    if (!key) return null;
-
-    // 1. Check Cache
-    const cachedUrl = Cache.get(key);
-    if (cachedUrl) return cachedUrl;
-
-    try {
-        const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
-        const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-        // 2. Set Cache (55 mins)
-        Cache.set(key, url, 1000 * 60 * 55);
-        return url;
-    } catch (error) {
-        logger.error('Presign URL Error', { key, error: error.message });
-        return null;
-    }
-};
+// Local logic removed in favor of centralized s3.js logic
 
 // ... existing code ...
 
-exports.getMe = async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        // Presign Photos for GetMe
-        const userObj = user.toObject();
-        if (userObj.photos && userObj.photos.length > 0) {
-            userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
-                let signedUrl = null;
-                if (photo.key) {
-                    signedUrl = await getPreSignedUrl(photo.key);
-                }
-                return { ...photo, url: signedUrl || photo.url };
-            }));
-
-            // Update profilePhoto link if needed
-            const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
-            if (profilePhotoObj && profilePhotoObj.url) {
-                userObj.profilePhoto = profilePhotoObj.url;
-            }
-        }
-
-        res.status(200).json(userObj);
-    } catch (error) {
-        logger.error('GetMe Error', { error: error.message });
-        res.status(500).json({ message: 'Server Error' });
-    }
-};
+// Old getMe removed
 const { OAuth2Client } = require('google-auth-library');
 const twilio = require('twilio');
 const jwt = require('jsonwebtoken');
@@ -484,6 +433,7 @@ exports.logout = async (req, res) => {
 
 exports.getMe = async (req, res) => {
     try {
+        console.time('getMe');
         const user = await User.findById(req.user.id).lean(); // Optimized with lean()
         if (!user) return res.status(404).json({ message: 'User not found' });
 

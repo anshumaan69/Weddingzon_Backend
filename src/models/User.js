@@ -164,4 +164,11 @@ const userSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for Performance
+userSchema.index({ status: 1, _id: -1 }); // Critical for Feed Pagination
+userSchema.index({ username: 1 }); // Fast lookup
+userSchema.index({ email: 1 }); // Fast login lookup
+userSchema.index({ phone: 1 }); // Fast login lookup
+userSchema.index({ 'photos.isProfile': 1 }); // Finding profile photos
+
 module.exports = mongoose.model('User', userSchema);
