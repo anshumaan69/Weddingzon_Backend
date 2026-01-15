@@ -434,6 +434,10 @@ exports.logout = async (req, res) => {
 exports.getMe = async (req, res) => {
     try {
         console.time('getMe');
+
+        // Cache for 60 seconds (Client Side) - Reduces repeat fetches on navigation
+        res.set('Cache-Control', 'private, max-age=60');
+
         const user = await User.findById(req.user.id).lean(); // Optimized with lean()
         if (!user) return res.status(404).json({ message: 'User not found' });
 
