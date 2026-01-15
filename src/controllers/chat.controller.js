@@ -2,8 +2,36 @@ const Chat = require('../models/Chat');
 const User = require('../models/User');
 const logger = require('../utils/logger');
 
-const { uploadToS3, getSignedFileUrl } = require('../utils/s3');
+const { uploadToS3, getSignedFileUrl, getPreSignedUrl } = require('../utils/s3');
 const { chatS3Client, s3Client } = require('../config/s3'); // Import Chat S3 Client
+
+// Helper to get signed profile photo
+const getSignedProfilePhoto = async (user) => {
+    if (!user) return null;
+
+    // 1. Google Auth Avatar (Public)
+    if (user.auth_provider === 'google' && user.avatar) return user.avatar;
+
+    // 2. Photos Array (S3)
+    if (user.photos && user.photos.length > 0) {
+        const profile = user.photos.find(p => p.isProfile) || user.photos[0];
+        if (profile.key) {
+            return await getPreSignedUrl(profile.key);
+        }
+        return profile.url; // Fallback (might be broken if private)
+    }
+
+    // 3. Legacy/Direct profilePhoto field
+    if (user.profilePhoto) {
+        // If it's a key (no http), sign it
+        if (!user.profilePhoto.startsWith('http')) {
+            return await getPreSignedUrl(user.profilePhoto);
+        }
+        return user.profilePhoto;
+    }
+
+    return null;
+};
 
 // @desc    Get Chat History
 // @route   GET /api/chat/history/:userId
@@ -26,14 +54,23 @@ exports.getChatHistory = async (req, res) => {
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
-            .populate('sender', 'username profilePhoto')
-            .populate('receiver', 'username profilePhoto')
+            .populate('sender', 'username profilePhoto photos avatar auth_provider')
+            .populate('receiver', 'username profilePhoto photos avatar auth_provider')
             .lean();
 
-        // Sign the image URLs
+        // Sign the image URLs & Profile Photos
         const signedMessages = await Promise.all(messages.map(async (msg) => {
+            // Sign Message Media
             if (msg.type === 'image' && msg.mediaUrl) {
                 msg.mediaUrl = await getSignedFileUrl(msg.mediaUrl, chatS3Client);
+            }
+            // Sign Sender Profile
+            if (msg.sender) {
+                msg.sender.profilePhoto = await getSignedProfilePhoto(msg.sender);
+            }
+            // Sign Receiver Profile
+            if (msg.receiver) {
+                msg.receiver.profilePhoto = await getSignedProfilePhoto(msg.receiver);
             }
             return msg;
         }));
@@ -116,7 +153,10 @@ exports.getRecentConversations = async (req, res) => {
                     username: '$userInfo.username',
                     first_name: '$userInfo.first_name',
                     last_name: '$userInfo.last_name',
-                    profilePhoto: '$userInfo.profilePhoto',
+                    // profilePhoto: '$userInfo.profilePhoto', // Removed, processed manually
+                    photos: '$userInfo.photos',
+                    avatar: '$userInfo.avatar',
+                    auth_provider: '$userInfo.auth_provider',
                     lastMessage: 1,
                     lastMessageAt: 1,
                     unreadCount: 1
@@ -126,7 +166,28 @@ exports.getRecentConversations = async (req, res) => {
         ];
 
         const conversations = await Chat.aggregate(pipeline);
-        res.status(200).json({ success: true, data: conversations });
+
+        // Process and Sign Photos
+        const processedConversations = await Promise.all(conversations.map(async (conv) => {
+            // Construct a mini user object for the helper
+            const userObj = {
+                photos: conv.photos,
+                avatar: conv.avatar,
+                auth_provider: conv.auth_provider,
+                profilePhoto: null // aggregate didn't protect it, but we can if we want.
+            };
+
+            conv.profilePhoto = await getSignedProfilePhoto(userObj);
+
+            // Cleanup internal fields
+            delete conv.photos;
+            delete conv.avatar;
+            delete conv.auth_provider;
+
+            return conv;
+        }));
+
+        res.status(200).json({ success: true, data: processedConversations });
 
     } catch (error) {
         logger.error('Get Conversations Error', { error: error.message });
