@@ -1,7 +1,7 @@
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const logger = require('../utils/logger');
-const { uploadToS3 } = require('../utils/s3'); // Assuming you have this utility
+const { uploadToS3, getSignedFileUrl } = require('../utils/s3'); // Assuming you have this utility
 
 // @desc    Get Chat History
 // @route   GET /api/chat/history/:userId
@@ -28,7 +28,15 @@ exports.getChatHistory = async (req, res) => {
             .populate('receiver', 'username profilePhoto')
             .lean();
 
-        res.status(200).json({ success: true, data: messages.reverse() }); // Reverse to show oldest to newest
+        // Sign the image URLs
+        const signedMessages = await Promise.all(messages.map(async (msg) => {
+            if (msg.type === 'image' && msg.mediaUrl) {
+                msg.mediaUrl = await getSignedFileUrl(msg.mediaUrl);
+            }
+            return msg;
+        }));
+
+        res.status(200).json({ success: true, data: signedMessages.reverse() }); // Reverse to show oldest to newest
     } catch (error) {
         logger.error('Get Chat History Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
@@ -139,7 +147,10 @@ exports.uploadChatImage = async (req, res) => {
         const result = await uploadToS3(req.file, 'chat-images');
         logger.info(`Upload Success: ${result.Location}`);
 
-        res.status(200).json({ success: true, url: result.Location });
+        // Generate a signed URL for immediate use
+        const signedUrl = await getSignedFileUrl(result.Key);
+
+        res.status(200).json({ success: true, url: signedUrl });
     } catch (error) {
         logger.error('Chat Upload Error', { error: error.message, stack: error.stack });
         res.status(500).json({ message: 'Server Error: ' + error.message });

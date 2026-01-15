@@ -303,29 +303,114 @@ Error (4xx/5xx):
                                   CONNECTIONS
 ================================================================================
 
-1. REQUEST PHOTO ACCESS
+1. SEND CONNECTION REQUEST (Interest)
+   POST /connections/send
+   Desc: Send a connection request (interest) to another user.
+   
+   Request Body:
+   {
+     "targetUsername": "alice"        // Required
+   }
+
+   Response (201 Created):
+   {
+     "success": true,
+     "data": { "status": "pending", ... }
+   }
+
+2. ACCEPT CONNECTION
+   POST /connections/accept
+   Desc: Accept a pending connection request.
+   
+   Request Body:
+   {
+     "requestId": "65b..."            // Required
+   }
+
+3. REJECT CONNECTION
+   POST /connections/reject
+   Desc: Reject a pending connection request.
+   
+   Request Body:
+   {
+     "requestId": "65b..."            // Required
+   }
+
+4. CANCEL REQUEST
+   POST /connections/cancel
+   Desc: Cancel a pending request (connection, photo, or details).
+   
+   Request Body:
+   {
+     "targetUsername": "alice",
+     "type": "connection"             // 'connection', 'photo', or 'details'
+   }
+
+5. REQUEST PHOTO ACCESS
    POST /connections/request-photo-access
    Desc: Request permission to view a user's private photos.
    
    Request Body:
    {
-     "targetUserId": "65b2..."        // Required
+     "targetUsername": "alice"        // Required
    }
 
-   Response (200 OK):
+6. REQUEST DETAILS ACCESS
+   POST /connections/request-details-access
+   Desc: Request permission to view a user's contact details.
+   
+   Request Body:
    {
-     "message": "Request sent/queued for approval",
-     "request": { "status": "pending", ... }
+     "targetUsername": "alice"        // Required
    }
 
-2. CHECK CONNECTION STATUS
-   GET /connections/status/:targetUserId
-   Desc: Check if the current user has access to target user's photos.
+7. RESPOND TO REQUESTS
+   POST /connections/respond-photo
+   POST /connections/respond-details
+   Desc: Grant or reject access requests.
+   
+   Request Body:
+   {
+     "requestId": "65b...",           // Required
+     "action": "grant" | "reject"     // Required
+   }
+
+8. GET INCOMING REQUESTS
+   GET /connections/requests
+   Desc: Get all pending requests (Connection, Photo, Details).
    
    Response (200 OK):
    {
-     "status": "none" | "pending" | "accepted" | "rejected"
+     "success": true,
+     "data": [
+       { "type": "connection", "requester": { ... }, "status": "pending" },
+       { "type": "photo", "requester": { ... }, "status": "pending" }
+     ]
    }
+
+9. GET MY CONNECTIONS
+   GET /connections/my-connections
+   Desc: List of accepted connections (friends).
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "data": [
+       { "username": "alice", "profilePhoto": "..." }
+     ]
+   }
+
+10. CHECK CONNECTION STATUS
+    GET /connections/status/:username
+    Desc: Check if the current user has access/connection with target user.
+    
+    Response (200 OK):
+    {
+      "success": true,
+      "status": "pending",       // Photo Access Status
+      "friendStatus": "accepted",// Connection Status
+      "detailsStatus": "none"    // Details Access Status
+    }
 
 
 ================================================================================
@@ -346,11 +431,7 @@ Error (4xx/5xx):
    {
      "success": true,
      "data": [ ... ],
-     "pagination": {
-       "total": 150,
-       "page": 1,
-       "pages": 15
-     }
+     "pagination": { "total": 150, "page": 1, "pages": 15 }
    }
 
 2. SYSTEM STATISTICS
@@ -362,28 +443,19 @@ Error (4xx/5xx):
      "success": true,
      "totalUsers": 1250,
      "totalRevenue": 50000,
-     "activeUsers": 300,
-     "suspendedUsers": 5
+     "activeUsers": 300
    }
 
-3. MANAGE PHOTO REQUESTS
+3. MANAGE COSTS
+   GET /admin/cost
+   POST /admin/cost
+   Desc: Manage operational costs.
+
+4. MANAGE PHOTO REQUESTS
    GET /admin/photo-access/requests
    Desc: View all pending photo access requests requiring moderation.
-   
-   Response (200 OK):
-   {
-     "success": true,
-     "data": [
-       {
-         "_id": "req_123",
-         "requester": { "username": "bob" },
-         "targetUser": { "username": "alice" },
-         "status": "pending"
-       }
-     ]
-   }
 
-4. APPROVE/REJECT REQUEST
+5. APPROVE/REJECT REQUEST (Admin Override)
    PATCH /admin/photo-access/requests/:id
    
    Request Body:
@@ -391,13 +463,7 @@ Error (4xx/5xx):
      "status": "granted" | "rejected"
    }
 
-   Response (200 OK):
-   {
-     "success": true,
-     "data": { "status": "granted", ... }
-   }
-
-5. USER MANAGEMENT (BAN/ROLE)
+6. USER MANAGEMENT (BAN/ROLE)
    PATCH /admin/users/:id/status
    Body: { "status": "banned" }
 
@@ -406,3 +472,77 @@ Error (4xx/5xx):
 
    DELETE /admin/users/:id
    Desc: Soft delete a user.
+
+
+================================================================================
+                                CHAT & MESSAGING
+================================================================================
+
+1. GET CONVERSATIONS
+   GET /chat/conversations
+   Desc: Get list of recent conversations (for sidebar).
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "data": [
+       {
+         "_id": "user_id_of_other_person",
+         "username": "alice",
+         "lastMessage": "Hello there",
+         "unreadCount": 2
+       }
+     ]
+   }
+
+2. GET CHAT HISTORY
+   GET /chat/history/:userId
+   Desc: Get messages between current user and target user.
+   Query Params:
+     - page: 1
+     - limit: 50
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "data": [
+       {
+         "sender": { "username": "me" },
+         "message": "Hi",
+         "createdAt": "..."
+       }
+     ]
+   }
+
+3. UPLOAD CHAT IMAGE
+   POST /chat/upload
+   Desc: Upload an image to send in chat.
+   Content-Type: multipart/form-data
+   Body: image (file)
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "url": "https://s3..."
+   }
+
+4. MARK AS READ
+   POST /chat/read
+   Desc: Mark messages from a specific sender as read.
+   
+   Body:
+   {
+     "senderId": "..."
+   }
+
+--------------------------------------------------------------------------------
+SOCKET.IO EVENTS (Real-time)
+--------------------------------------------------------------------------------
+- Connection: Requires `auth: { token: "..." }`
+- Event: `send_message`
+  Data: { receiverId: "...", message: "...", type: "text" | "image" }
+- Event: `receive_message`
+  Data: { sender: { ... }, message: "...", ... }
+- Event: `typing` / `stop_typing`
+  Data: { receiverId: "..." }
+
