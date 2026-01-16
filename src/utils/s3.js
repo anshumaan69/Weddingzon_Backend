@@ -64,7 +64,9 @@ exports.getPreSignedUrl = async (key) => {
 
     // 1. Check Cache
     const cachedUrl = Cache.get(key);
-    if (cachedUrl) return cachedUrl;
+    if (cachedUrl) {
+        return cachedUrl;
+    }
 
     try {
         const command = new GetObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: key });

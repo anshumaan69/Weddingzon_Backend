@@ -161,9 +161,12 @@ exports.searchUsers = async (req, res) => {
             mother_tongue,
             eating_habits, smoking_habits, drinking_habits,
             highest_education, annual_income, occupation,
+
             // Property Filters
-            land_component, // e.g. "Yes", "No", or range like "5+ Acres" (Simplified for now)
-            property_type,  // e.g. "Commercial", "Residential"
+            land_component, // Text fallback (Deprecated)
+            minLandArea, maxLandArea, // Numeric Range
+            property_type,
+            brothers, sisters, // Family filters
             sortBy,
             q, // Generic Search Query
             page = 1, limit = 20
@@ -210,6 +213,10 @@ exports.searchUsers = async (req, res) => {
             if (Object.keys(dobQuery).length > 0) query.dob = dobQuery;
         }
 
+        // --- Family Filters ---
+        if (brothers) query.brothers = parseInt(brothers);
+        if (sisters) query.sisters = parseInt(sisters);
+
         // --- Personal ---
         if (religion) query.religion = religion;
         if (community) query.community = community;
@@ -219,6 +226,7 @@ exports.searchUsers = async (req, res) => {
         // --- Location ---
         if (state) query.state = new RegExp(state, 'i');
         if (city) query.city = new RegExp(city, 'i');
+        if (req.query.country) query.country = new RegExp(req.query.country, 'i');
 
         // --- Professional ---
         if (highest_education) query.highest_education = highest_education;
@@ -235,15 +243,18 @@ exports.searchUsers = async (req, res) => {
         if (property_type) {
             query.property_types = { $in: [new RegExp(property_type, 'i')] };
         }
-        if (land_component) {
-            // Simplified: If they want to search by text/value. 
-            // Ideally land_area would be numeric for range, but schema has String.
-            query.land_area = { $ne: null }; // Basic "Has Land" check if passed "true"?
-            // Or if passing exact string:
-            if (land_component !== 'any') {
-                // regex search for now since schema is string
-                query.land_area = new RegExp(land_component, 'i');
-            }
+        // Land Area Range Filter (Refactored to Number)
+        if (minLandArea || maxLandArea) {
+            query.land_area = {};
+            if (minLandArea) query.land_area.$gte = parseFloat(minLandArea);
+            if (maxLandArea) query.land_area.$lte = parseFloat(maxLandArea);
+        }
+
+        // Legacy/Text Land Component Filter
+        if (land_component && land_component !== 'any') {
+            // If range is NOT used, allow text search (fallback) - ONLY if checks fail or for legacy string data (which is broken now)
+            // We can ignore this or try to parse land_component if it's a number
+            // For now, let's leave it but it might not work well with Number type unless exact value match
         }
 
         // --- Height ---

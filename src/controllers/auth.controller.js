@@ -433,17 +433,19 @@ exports.logout = async (req, res) => {
 
 exports.getMe = async (req, res) => {
     try {
-        console.time('getMe');
-
         // Cache for 60 seconds (Client Side) - Reduces repeat fetches on navigation
         res.set('Cache-Control', 'private, max-age=60');
 
-        const user = await User.findById(req.user._id).lean(); // Optimized with lean()
+        // Optimization: user is already fetched in authMiddleware with lean()
+        const user = req.user;
+
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         // Presign Photos for GetMe
         // const userObj = user.toObject(); // Not needed with lean()
         const userObj = user;
+
+        console.time('getMe-S3-Sign');
         if (userObj.photos && userObj.photos.length > 0) {
             userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
                 let signedUrl = null;

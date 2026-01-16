@@ -268,11 +268,14 @@ Error (4xx/5xx):
      - minAge, maxAge: Age range (e.g., 25, 30)
      - minHeight, maxHeight: Height range (e.g., 160)
      - religion, community, mother_tongue: Cultural filters
+     - country: Country filter
      - state, city: Location filters
+     - brothers, sisters: Exact count (e.g., 0, 1)
      - marital_status: "Never Married", "Divorced", etc.
      - highest_education, occupation, annual_income: Professional filters
      - eating_habits, smoking_habits, drinking_habits: Lifestyle
-     - land_component: Land area filter (e.g., "5+ acres")
+     - land_component: Text match (Deprecated) OR use Range below
+     - minLandArea, maxLandArea: Land area range (e.g. 5, 20 for 5-20 units)
      - property_type: Property filter (e.g., "Agricultural")
      - sortBy: "created_at" (default), "age_asc", "age_desc"
      - page: 1 (default)

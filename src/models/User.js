@@ -128,7 +128,7 @@ const userSchema = new mongoose.Schema(
         // --- Preferences (Future Proofing) ---
         property_types: [String],
         land_types: [String],
-        land_area: { type: String },
+        land_area: { type: Number },
         house_types: [String],
         business_types: [String],
         photos: {
