@@ -16,8 +16,8 @@ const { userCache } = require('../utils/cache');
 // @route   GET /api/users/feed
 // @access  Private
 exports.getFeed = async (req, res) => {
+    const startTotal = performance.now();
     try {
-        console.time('getFeed'); // Timing start
         const { cursor } = req.query;
         const FETCH_SIZE = 15;
         const SHOW_SIZE = 9;
@@ -32,7 +32,7 @@ exports.getFeed = async (req, res) => {
             ]
         };
 
-        // Cursor Pagination (Descending by _id/creation)
+        // Cursor Pagination
         if (cursor) {
             query._id = { ...query._id, $lt: cursor };
         }
@@ -53,7 +53,7 @@ exports.getFeed = async (req, res) => {
         // 3. Slice Logic
         const visibleUsers = users.slice(0, SHOW_SIZE);
 
-        // 4. Process Permissions & Statuses (Admin/Connections/Photos)
+        // 4. Process Permissions & Statuses
         let grantedUserIds = new Set();
         const isAdmin = ['admin', 'superadmin'].includes(req.user.role);
 
@@ -70,7 +70,6 @@ exports.getFeed = async (req, res) => {
             }).select('recipient status').lean()
         ]);
 
-        // Create Maps for fast lookup
         const photoMap = new Map();
         photoRequests.forEach(req => {
             photoMap.set(req.targetUser.toString(), req.status);
@@ -82,9 +81,11 @@ exports.getFeed = async (req, res) => {
             connectionMap.set(req.recipient.toString(), req.status);
         });
 
+        const startSign = performance.now();
+
         // 5. Map Data
         const feedData = await Promise.all(visibleUsers.map(async user => {
-            const userObj = user; // Already object due to lean()
+            const userObj = user;
             let photos = userObj.photos || [];
 
             // Sort photos: Profile first
@@ -93,12 +94,11 @@ exports.getFeed = async (req, res) => {
             const hasAccess = isAdmin || grantedUserIds.has(userObj._id.toString());
             const userIdStr = userObj._id.toString();
 
-            // Process URLs (Presign)
+            // Process URLs (Presign - OPTIMIZED)
             photos = await Promise.all(photos.map(async (photo, index) => {
                 // Determine if restricted
                 const isRestricted = !hasAccess && index !== 0 && photos.length > 1;
 
-                // ... (Keep existing key/url logic)
                 let targetKey = photo.key;
                 if (isRestricted) {
                     if (photo.key && photo.key.includes('_orig.webp')) {
@@ -107,11 +107,13 @@ exports.getFeed = async (req, res) => {
                 }
 
                 let signedUrl = null;
-                if (targetKey) {
+                // SPEED OPTIMIZATION: Only sign the FIRST photo (Profile Photo)
+                // The feed card only needs one.
+                if (targetKey && index === 0) {
                     signedUrl = await getPreSignedUrl(targetKey);
                 }
 
-                const finalUrl = signedUrl || photo.url;
+                const finalUrl = signedUrl || photo.url; // Use signed or fallback (probably null/expired for >0)
 
                 return {
                     ...photo,
@@ -125,7 +127,7 @@ exports.getFeed = async (req, res) => {
                 username: userObj.username,
                 first_name: userObj.first_name,
                 last_name: userObj.last_name,
-                profilePhoto: userObj.profilePhoto,
+                profilePhoto: userObj.profilePhoto, // This might be stale if we relied on separate field, but usually frontend uses photos[0]
                 bio: userObj.bio,
                 photos: photos,
                 role: userObj.role,
@@ -134,12 +136,16 @@ exports.getFeed = async (req, res) => {
             };
         }));
 
+        const endSign = performance.now();
+        const signTime = (endSign - startSign).toFixed(2);
+        const totalTime = (performance.now() - startTotal).toFixed(2);
+
+        res.set('Server-Timing', `sign;dur=${signTime}, total;dur=${totalTime}`);
+
         res.status(200).json({
             success: true,
             data: feedData,
         });
-
-        console.timeEnd('getFeed'); // Timing end
 
     } catch (error) {
         logger.error('Get Feed Error', { user: req.user.username, error: error.message });
