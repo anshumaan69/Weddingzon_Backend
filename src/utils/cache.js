@@ -1,3 +1,4 @@
+
 // src/utils/cache.js
 const LRUCache = require('lru-cache');
 
@@ -17,11 +18,11 @@ let hits = 0;
 let misses = 0;
 
 // User Cache Options
-const userOptions = {
-    max: 1000,
-    ttl: 1000 * 60 * 15, // 15 Minutes (Stale data is bad for profile updates, relies on invalidation)
-};
-const userCache = new LRUCache(userOptions);
+const userCache = new LRUCache({
+    max: 5000,
+    ttl: 1000 * 60 * 60 * 24, // 24 Hours
+    updateAgeOnGet: true,
+});
 
 module.exports = {
     cache,

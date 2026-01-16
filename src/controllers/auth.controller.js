@@ -437,35 +437,60 @@ exports.logout = async (req, res) => {
 };
 
 exports.getMe = async (req, res) => {
+    const startTotal = performance.now();
     try {
         // Cache for 60 seconds (Client Side) - Reduces repeat fetches on navigation
         res.set('Cache-Control', 'private, max-age=60');
 
         // Optimization: user is already fetched in authMiddleware with lean()
-        const user = req.user;
+        const user = req.user; // Already retrieved from Cache or DB in middleware
 
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Presign Photos for GetMe
-        // const userObj = user.toObject(); // Not needed with lean()
+        // --- Selective Photo Signing Optimization ---
         const userObj = user;
+        const wantFullPhotos = req.query.full === 'true';
 
-        console.time('getMe-S3-Sign');
+        const startSign = performance.now();
+
         if (userObj.photos && userObj.photos.length > 0) {
-            userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
-                let signedUrl = null;
-                if (photo.key) {
-                    signedUrl = await getPreSignedUrl(photo.key);
-                }
-                return { ...photo, url: signedUrl || photo.url };
-            }));
+            if (wantFullPhotos) {
+                // Heavy: Sign ALL photos (Only for Onboarding/Edit Profile)
+                userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
+                    let signedUrl = null;
+                    if (photo.key) {
+                        signedUrl = await getPreSignedUrl(photo.key);
+                    }
+                    return { ...photo, url: signedUrl || photo.url };
+                }));
 
-            // Update profilePhoto link if needed
-            const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
-            if (profilePhotoObj && profilePhotoObj.url) {
-                userObj.profilePhoto = profilePhotoObj.url;
+                // Update profilePhoto link if needed
+                const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
+                if (profilePhotoObj && profilePhotoObj.url) {
+                    userObj.profilePhoto = profilePhotoObj.url;
+                }
+            } else {
+                // Light: Sign ONLY Profile Photo (Default for Feed/Header)
+                // We don't sign the whole 'photos' array, leaving the keys/URLs as is (expired or raw)
+                // We only ensure userObj.profilePhoto is fresh.
+
+                const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
+                if (profilePhotoObj && profilePhotoObj.key) {
+                    const signedUrl = await getPreSignedUrl(profilePhotoObj.key);
+                    userObj.profilePhoto = signedUrl;
+
+                    // Also update it inside the array just in case frontend reads from there
+                    // But we won't iterate the whole array
+                    profilePhotoObj.url = signedUrl;
+                }
             }
         }
+        const endSign = performance.now();
+        const signTime = (endSign - startSign).toFixed(2);
+        const totalTime = (performance.now() - startTotal).toFixed(2);
+
+        // Add Server-Timing Header (visible in DevTools)
+        res.set('Server-Timing', `sign;dur=${signTime}, total;dur=${totalTime}`);
 
         res.status(200).json(userObj);
     } catch (error) {
