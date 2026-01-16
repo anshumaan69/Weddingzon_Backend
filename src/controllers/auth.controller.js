@@ -371,6 +371,11 @@ exports.registerDetails = async (req, res) => {
 
         // Username Update Logic
         if (req.body.username && req.body.username !== user.username) {
+            // Prevent change if profile is already complete
+            if (user.is_profile_complete) {
+                return res.status(400).json({ message: 'Username cannot be changed once profile is complete' });
+            }
+
             const existingUsername = await User.findOne({ username: req.body.username });
             if (existingUsername) {
                 return res.status(400).json({ message: 'Username is already taken' });

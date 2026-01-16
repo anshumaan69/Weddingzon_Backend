@@ -574,7 +574,7 @@ Error (4xx/5xx):
    Response (200 OK):
    {
      "success": true,
-     "url": "https://s3..."
+     "url": "https://s3..."           // Presigned URL (or key/path depending on implementation)
    }
 
 4. MARK AS READ
@@ -591,9 +591,19 @@ SOCKET.IO EVENTS (Real-time)
 --------------------------------------------------------------------------------
 - Connection: Requires `auth: { token: "..." }`
 - Event: `send_message`
-  Data: { receiverId: "...", message: "...", type: "text" | "image" }
+  Data: { 
+    receiverId: "...", 
+    message: "...", 
+    type: "text" | "image",
+    mediaUrl: "..."  // Optional: URL/Key from upload response
+  }
 - Event: `receive_message`
-  Data: { sender: { ... }, message: "...", ... }
+  Data: { 
+    sender: { ... }, 
+    message: "...", 
+    type: "text" | "image",
+    mediaUrl: "https://..." // Presigned URL for viewing
+  }
 - Event: `typing` / `stop_typing`
   Data: { receiverId: "..." }
 
