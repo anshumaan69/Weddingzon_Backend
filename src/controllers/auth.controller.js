@@ -129,7 +129,7 @@ exports.googleAuth = async (req, res) => {
             // Case 2: Authorization Code Flow
             const { tokens } = await client.getToken({
                 code,
-                redirect_uri: redirect_uri || process.env.CALLBACK_URL
+                redirect_uri: redirect_uri || 'postmessage'
             });
 
             client.setCredentials(tokens);
