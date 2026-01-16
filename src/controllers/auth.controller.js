@@ -128,9 +128,12 @@ exports.googleAuth = async (req, res) => {
             }
         } else {
             // Case 2: Authorization Code Flow
+            const usedRedirectUri = redirect_uri || 'postmessage';
+            console.log(`[AUTH DEBUG] Exchanging Code. URI: ${usedRedirectUri}`);
+
             const { tokens } = await client.getToken({
                 code,
-                redirect_uri: redirect_uri || 'postmessage'
+                redirect_uri: usedRedirectUri
             });
 
             client.setCredentials(tokens);

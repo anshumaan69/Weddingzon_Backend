@@ -123,13 +123,16 @@ Error (4xx/5xx):
    
    Request Body:
    {
-     "code": "4/0AeaYSH...",          // Required: Auth code from Google
-     "redirect_uri": "http://..."     // Required: Custom redirect URI
+     "code": "4/0AeaYSH...",          // Required (Auth Code Flow): Auth code from Google
+     "redirect_uri": "postmessage",   // Required for Mobile/SPA (Auth Code Flow)
+     "idToken": "eyJ..."              // Optional (Implicit Flow): Google ID Token
    }
 
    Response (200 OK):
    {
      "success": true,
+     "accessToken": "eyJ...",         // Backend JWT Access Token (Send this in Authorization header for API calls)
+     "refreshToken": "eyJ...",        // Backend Refresh Token
      "user": {
        "_id": "65a1b2c3d4e5f67890123456",
        "email": "user@example.com",
