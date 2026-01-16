@@ -16,9 +16,17 @@ const cache = new LRUCache(options);
 let hits = 0;
 let misses = 0;
 
+// User Cache Options
+const userOptions = {
+    max: 1000,
+    ttl: 1000 * 60 * 15, // 15 Minutes (Stale data is bad for profile updates, relies on invalidation)
+};
+const userCache = new LRUCache(userOptions);
+
 module.exports = {
     cache,
-    getStats: () => ({ hits, misses, size: cache.size }),
+    userCache,
+    getStats: () => ({ hits, misses, size: cache.size, userCacheSize: userCache.size }),
     get: (key) => {
         const val = cache.get(key);
         if (val) hits++;
