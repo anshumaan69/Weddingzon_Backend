@@ -62,7 +62,7 @@ exports.getChatHistory = async (req, res) => {
         const signedMessages = await Promise.all(messages.map(async (msg) => {
             // Sign Message Media
             if (msg.type === 'image' && msg.mediaUrl) {
-                msg.mediaUrl = await getSignedFileUrl(msg.mediaUrl, chatS3Client);
+                msg.mediaUrl = await getSignedFileUrl(msg.mediaUrl, s3Client);
             }
             // Sign Sender Profile
             if (msg.sender) {
