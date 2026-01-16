@@ -22,7 +22,7 @@ const client = new OAuth2Client(
 );
 
 console.log('[DEBUG] Auth Controller Loaded');
-console.log('[DEBUG] GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'LOADED' : 'MISSING');
+console.log('[DEBUG] GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID); // Log actual value for debugging
 console.log('[DEBUG] CALLBACK_URL:', process.env.CALLBACK_URL);
 
 let twilioClient;
