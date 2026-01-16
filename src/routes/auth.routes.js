@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { googleAuth, sendOtp, verifyOtp, registerDetails, logout, refreshToken, getMe } = require('../controllers/auth.controller');
+const { googleAuth, sendOtp, verifyOtp, registerDetails, logout, refreshToken, getMe, checkUsername } = require('../controllers/auth.controller');
 const { protect } = require('../middlewares/authMiddleware');
 const { csrfProtection } = require('../middlewares/csrfMiddleware');
 const rateLimiterMiddleware = require('../middlewares/rateLimiter');
@@ -10,6 +10,7 @@ router.post('/google', googleAuth);
 router.post('/send-otp', sendOtp);
 router.post('/verify-otp', verifyOtp);
 router.post('/refresh', refreshToken);
+router.get('/check-username', checkUsername);
 
 // Protected
 router.post('/register-details', protect, csrfProtection, registerDetails);

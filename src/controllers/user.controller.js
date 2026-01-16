@@ -4,7 +4,7 @@ const ConnectionRequest = require('../models/ConnectionRequest');
 // const cloudinary = require('../config/cloudinary'); // Deprecated
 const { getPreSignedUrl, uploadToS3 } = require('../utils/s3'); // Centralized S3 Utils
 const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const s3Client = require('../config/s3'); // Needed for raw commands (delete)
+const { s3Client } = require('../config/s3'); // Needed for raw commands (delete)
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
@@ -59,15 +59,19 @@ exports.getFeed = async (req, res) => {
 
         // Bulk Fetch Statuses
         const visibleUserIds = visibleUsers.map(u => u._id);
+        const myId = req.user._id.toString();
+
         const [photoRequests, connectionRequests] = await Promise.all([
             PhotoAccessRequest.find({
                 requester: req.user._id,
                 targetUser: { $in: visibleUserIds }
             }).select('targetUser status').lean(),
             ConnectionRequest.find({
-                requester: req.user._id,
-                recipient: { $in: visibleUserIds }
-            }).select('recipient status').lean()
+                $or: [
+                    { requester: req.user._id, recipient: { $in: visibleUserIds } },
+                    { recipient: req.user._id, requester: { $in: visibleUserIds } }
+                ]
+            }).select('requester recipient status').lean()
         ]);
 
         const photoMap = new Map();
@@ -78,7 +82,10 @@ exports.getFeed = async (req, res) => {
 
         const connectionMap = new Map();
         connectionRequests.forEach(req => {
-            connectionMap.set(req.recipient.toString(), req.status);
+            const otherId = req.requester.toString() === myId ? req.recipient.toString() : req.requester.toString();
+            connectionMap.set(otherId, req.status);
+            // Friends get access too!
+            if (req.status === 'accepted') grantedUserIds.add(otherId);
         });
 
         const startSign = performance.now();
@@ -107,9 +114,8 @@ exports.getFeed = async (req, res) => {
                 }
 
                 let signedUrl = null;
-                // SPEED OPTIMIZATION: Only sign the FIRST photo (Profile Photo)
-                // The feed card only needs one.
-                if (targetKey && index === 0) {
+                // Sign ALL photos because FeedItem uses a Carousel
+                if (targetKey) {
                     signedUrl = await getPreSignedUrl(targetKey);
                 }
 

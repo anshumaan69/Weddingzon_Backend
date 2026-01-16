@@ -498,3 +498,19 @@ exports.getMe = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+exports.checkUsername = async (req, res) => {
+    const { username } = req.query;
+    if (!username) return res.status(400).json({ message: 'Username is required' });
+
+    try {
+        const user = await User.findOne({ username });
+        if (user) {
+            return res.status(200).json({ available: false, message: 'Username is taken' });
+        }
+        return res.status(200).json({ available: true, message: 'Username is available' });
+    } catch (error) {
+        logger.error('Check Username Error', { error: error.message });
+        res.status(500).json({ message: 'Server check failed' });
+    }
+};
