@@ -108,7 +108,8 @@ exports.googleAuth = async (req, res) => {
 
         // Known Web Client ID from Flutter App
         const FLUTTER_CLIENT_ID = '294108253572-oih80rbj00t8rrntjincau7hi6cbji4f.apps.googleusercontent.com';
-        const validAudiences = [process.env.GOOGLE_CLIENT_ID, FLUTTER_CLIENT_ID];
+        const ANDROID_CLIENT_ID = '294108253572-90qnhlmcjf8nugpdfqn3m0f1m9nl8q2p.apps.googleusercontent.com'; // From user screenshot
+        const validAudiences = [process.env.GOOGLE_CLIENT_ID, FLUTTER_CLIENT_ID, ANDROID_CLIENT_ID];
 
         if (idToken) {
             // Case 1: Client sent ID Token directly (Implicit Flow / Mobile default)
