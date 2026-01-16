@@ -3,7 +3,7 @@ const router = express.Router();
 const { googleAuth, sendOtp, verifyOtp, registerDetails, logout, refreshToken, getMe, checkUsername } = require('../controllers/auth.controller');
 const { protect } = require('../middlewares/authMiddleware');
 const { csrfProtection } = require('../middlewares/csrfMiddleware');
-const rateLimiterMiddleware = require('../middlewares/rateLimiter');
+
 
 // Public
 router.post('/google', googleAuth);

@@ -27,11 +27,9 @@ console.log('[DEBUG] CALLBACK_URL:', process.env.CALLBACK_URL);
 
 let twilioClient;
 try {
-    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_ACCOUNT_SID.startsWith('AC')) {
-        twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    }
+    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 } catch (e) {
-    console.warn('Failed to initialize Twilio client:', e.message);
+    console.warn('Twilio Client Init Failed (Check Credentials):', e.message);
 }
 
 // --- Helper Functions ---
@@ -191,82 +189,110 @@ exports.googleAuth = async (req, res) => {
 exports.sendOtp = async (req, res) => {
     let { phone } = req.body;
 
-    if (phone) {
-        phone = phone.toString().replace(/\s+/g, '');
-        if (!phone.startsWith('+')) phone = '+91' + phone;
-    }
+    if (!phone) return res.status(400).json({ message: 'Phone number is required' });
+
+    // Format Phone
+    phone = phone.toString().replace(/\s+/g, '');
+    if (!phone.startsWith('+')) phone = '+91' + phone;
 
     try {
-        // Mock OTP Logic - No Twilio
-        // Always return 123456 for dev
-        logger.info(`OTP Mock Sent: ${phone}`);
-        return res.status(200).json({
-            message: 'OTP sent successfully (MOCK)',
-            otp: '123456',
+        if (!twilioClient) {
+            return res.status(500).json({ message: 'SMS Service not configured' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 Minutes
+
+        // Find or Create User (Partial) to store OTP
+        let user = await User.findOne({ phone });
+        if (!user) {
+            // Check if phone matches any unverified user? Or just create placeholder?
+            // Strategy: Create a "stub" user or just update if exists.
+            // If new, we can create a skeletal user or just delay creation until verify?
+            // Better: Store OTP in User. If user doesn't exist, we can't store it in DB easily without creating one.
+            // But we don't want to pollute DB with spammed numbers.
+            // Alternative: Upsert a user with `is_phone_verified: false`
+            user = await User.create({
+                phone,
+                otp,
+                otpExpires,
+                is_phone_verified: false
+            });
+        } else {
+            user.otp = otp;
+            user.otpExpires = otpExpires;
+            await user.save();
+        }
+
+        // Send via Twilio
+        await twilioClient.messages.create({
+            body: `Your WeddingZon OTP is ${otp}. Valid for 10 minutes.`,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: phone
+        });
+
+        logger.info(`OTP Sent via Twilio: ${phone}`);
+        res.status(200).json({
+            message: 'OTP sent successfully',
             success: true
         });
 
     } catch (error) {
-        logger.error('Send OTP Failed', { phone, error: error.message });
+        logger.error('Send OTP Error', { phone, error: error.message });
         res.status(500).json({ message: 'Failed to send OTP' });
     }
 };
 
 exports.verifyOtp = async (req, res) => {
     let { phone, code } = req.body;
-    let isVerified = false;
 
-    if (phone) {
-        phone = phone.toString().replace(/\s+/g, '');
-        if (!phone.startsWith('+')) phone = '+91' + phone;
-    }
+    if (!phone || !code) return res.status(400).json({ message: 'Phone and Code required' });
+
+    phone = phone.toString().replace(/\s+/g, '');
+    if (!phone.startsWith('+')) phone = '+91' + phone;
 
     try {
-        // Mock Verification
-        if (code === '123456') {
-            isVerified = true;
+        // Fetch User with OTP fields
+        const user = await User.findOne({ phone }).select('+otp +otpExpires');
+
+        if (!user || !user.otp || !user.otpExpires) {
+            return res.status(400).json({ message: 'Invalid or expired OTP' });
         }
 
-        if (isVerified) {
-            let user = await User.findOne({ phone });
+        // Check Expiry
+        if (user.otpExpires < Date.now()) {
+            return res.status(400).json({ message: 'OTP expired' });
+        }
 
-            if (user) {
-                // Login Flow
-                const { accessToken, refreshToken } = generateTokens(user._id);
-                setCookies(req, res, accessToken, refreshToken);
-                logger.info(`OTP Login Success: ${phone}`);
-                return res.status(200).json({ success: true, user, accessToken, refreshToken });
-            }
-
-            // Signup Link Flow
-            const incomingToken = req.cookies.access_token;
-            if (incomingToken) {
-                try {
-                    const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-                    user = await User.findById(decoded.id);
-                    if (user) {
-                        user.phone = phone;
-                        user.is_phone_verified = true;
-                        await user.save();
-
-                        const { accessToken, refreshToken } = generateTokens(user._id);
-                        setCookies(req, res, accessToken, refreshToken);
-                        logger.info(`OTP Linked Success: ${phone} to User ${user._id}`);
-                        return res.status(200).json({ success: true, user, accessToken, refreshToken });
-                    }
-                } catch (e) { /* ignore */ }
-            }
-
-            logger.warn(`OTP Verified but Account Not Found/Linked: ${phone}`);
-            return res.status(400).json({
-                message: 'Account not found. Please signup with Google first.',
-                error: 'signup_required'
-            });
-
-        } else {
-            logger.warn(`Invalid OTP Attempt: ${phone}`);
+        // Check Match
+        if (user.otp !== code) {
             return res.status(400).json({ message: 'Invalid OTP' });
         }
+
+        // Success: Clear OTP
+        user.otp = undefined;
+        user.otpExpires = undefined;
+
+        // Mark Verified if not
+        if (!user.is_phone_verified) user.is_phone_verified = true;
+
+        await user.save();
+
+        // Login / Token Gen
+        const { accessToken, refreshToken } = generateTokens(user._id);
+        setCookies(req, res, accessToken, refreshToken);
+
+        logger.info(`OTP Verified: ${phone}`);
+
+        // Return user (hide sensitive)
+        const userObj = user.toObject();
+        delete userObj.otp;
+        delete userObj.otpExpires;
+        delete userObj.password;
+
+        return res.status(200).json({ success: true, user: userObj, accessToken, refreshToken });
+
     } catch (error) {
         logger.error(`Verify OTP Error: ${phone}`, { error: error.message });
         res.status(500).json({ message: 'Verification failed' });
