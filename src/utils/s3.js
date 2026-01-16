@@ -3,7 +3,7 @@ const { s3Client: defaultClient } = require('../config/s3');
 const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3'); // Added PutObjectCommand back since it was missing? No, it was used in uploadlocal. Wait, I need it here.
 const crypto = require('crypto');
 const logger = require('./logger');
-const Cache = require('./cache'); // Import central cache
+
 
 exports.uploadToS3 = async (file, folder = 'uploads', client = defaultClient, bucketName = process.env.AWS_BUCKET_NAME) => {
     const fileExtension = file.originalname.split('.').pop();
@@ -66,19 +66,14 @@ exports.getSignedFileUrl = async (fileUrlOrKey, client = defaultClient, bucketNa
 exports.getPreSignedUrl = async (key) => {
     if (!key) return null;
 
-    // 1. Check Cache
-    const cachedUrl = Cache.get(key);
-    if (cachedUrl) {
-        return cachedUrl;
-    }
+
 
     try {
         const command = new GetObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: key });
         // URL valid for 1 hour (3600s)
         const url = await getSignedUrl(defaultClient, command, { expiresIn: 3600 });
 
-        // 2. Set Cache (55 mins to be safe)
-        Cache.set(key, url, 1000 * 60 * 55);
+
 
         return url;
     } catch (error) {

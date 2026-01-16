@@ -8,7 +8,7 @@ const { s3Client } = require('../config/s3'); // Needed for raw commands (delete
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
-const { userCache } = require('../utils/cache');
+
 
 // Local getPreSignedUrl removed in favor of utils/s3.js
 
@@ -442,7 +442,7 @@ exports.uploadPhotos = async (req, res) => {
         }
 
         await user.save();
-        userCache.delete(`user:${user._id}`); // Invalidate
+
         logger.info(`S3 Photos Uploaded: ${req.user.username} (${req.files.length} files)`);
 
         // Generate Presigned URLs for the response so frontend can display them immediately
@@ -550,7 +550,7 @@ exports.deletePhoto = async (req, res) => {
         }
 
         await user.save();
-        userCache.delete(`user:${user._id}`); // Invalidate
+
         // Generate Presigned URLs for response
         const responsePhotos = await Promise.all(user.photos.map(async (p) => {
             const pObj = p.toObject();
@@ -591,7 +591,7 @@ exports.setProfilePhoto = async (req, res) => {
         user.profilePhoto = photo.url;
 
         await user.save();
-        userCache.delete(`user:${user._id}`); // Invalidate
+
 
         // Generate Presigned URLs for response
         const responsePhotos = await Promise.all(user.photos.map(async (p) => {

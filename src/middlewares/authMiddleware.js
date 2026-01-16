@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { userCache } = require('../utils/cache');
+
 
 const protect = async (req, res, next) => {
     let token;
@@ -18,19 +18,8 @@ const protect = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // 1. Check Cache
-        const cachedUser = userCache.get(`user:${decoded.id}`);
-        if (cachedUser) {
-            req.user = cachedUser;
-            // console.log('[AUTH CACHE] Hit:', decoded.id);
-        } else {
-            // 2. Fetch from DB
-            req.user = await User.findById(decoded.id).select('-password').lean();
-            if (req.user) {
-                userCache.set(`user:${decoded.id}`, req.user);
-                // console.log('[AUTH CACHE] Miss:', decoded.id);
-            }
-        }
+        // 2. Fetch from DB
+        req.user = await User.findById(decoded.id).select('-password').lean();
 
         if (!req.user) {
             return res.status(401).json({ message: 'Not authorized, user not found' });

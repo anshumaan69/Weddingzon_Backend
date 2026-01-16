@@ -1,6 +1,6 @@
 const { getPreSignedUrl, uploadToS3 } = require('../utils/s3'); // Import centralized s3 utils
 const logger = require('../utils/logger');
-const { userCache } = require('../utils/cache');
+
 // Cache already handled in s3.js
 // ... other imports
 
@@ -392,7 +392,7 @@ exports.registerDetails = async (req, res) => {
         await user.save();
 
         // Invalidate Cache
-        userCache.delete(`user:${user._id}`);
+
 
         logger.info(`Profile Updated: ${user.username}`);
         res.status(200).json({ message: 'Profile updated successfully', user });
