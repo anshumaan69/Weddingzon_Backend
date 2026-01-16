@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Chat = require('../models/Chat');
 const logger = require('../utils/logger');
+const { getSignedFileUrl } = require('../utils/s3');
+const { s3Client } = require('../config/s3');
 
 module.exports = (io) => {
     // Middleware for Authentication
@@ -49,6 +51,7 @@ module.exports = (io) => {
                 logger.info(`Processing Message: ${userId} -> ${receiverId} (Conv: ${conversationId})`);
 
                 // Save to DB
+                // Note: mediaUrl here is just the key/url from upload. 
                 const newChat = await Chat.create({
                     sender: userId,
                     receiver: receiverId,
@@ -63,7 +66,13 @@ module.exports = (io) => {
 
                 const populatedChat = await Chat.findById(newChat._id)
                     .populate('sender', 'username profilePhoto')
-                    .populate('receiver', 'username profilePhoto');
+                    .populate('receiver', 'username profilePhoto')
+                    .lean(); // Use lean to modify
+
+                // Sign Image URL if present (so receiver can view it immediately)
+                if (populatedChat.type === 'image' && populatedChat.mediaUrl) {
+                    populatedChat.mediaUrl = await getSignedFileUrl(populatedChat.mediaUrl, s3Client);
+                }
 
                 // Emit to Receiver
                 io.to(receiverId).emit('receive_message', populatedChat);
@@ -73,7 +82,8 @@ module.exports = (io) => {
 
                 // Acknowledge to Client
                 if (typeof callback === 'function') {
-                    callback({ status: 'ok', messageId: newChat._id });
+                    // Send back the populated chat so sender gets the signed URL too
+                    callback({ status: 'ok', messageId: newChat._id, data: populatedChat });
                 }
 
                 logger.info(`Events Emitted to rooms: ${receiverId} and Sender Socket`);

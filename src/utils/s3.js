@@ -39,6 +39,10 @@ exports.getSignedFileUrl = async (fileUrlOrKey, client = defaultClient, bucketNa
                 const parts = fileUrlOrKey.split('.amazonaws.com/');
                 if (parts.length > 1) {
                     key = parts[1];
+                    // Strip query parameters if present (e.g. if URL was already signed)
+                    if (key.includes('?')) {
+                        key = key.split('?')[0];
+                    }
                 }
             }
         }
