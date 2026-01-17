@@ -193,16 +193,47 @@ exports.sendOtp = async (req, res) => {
     try {
         const otp = '123456';
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 Minutes
+        let user;
 
-        // Find User
-        let user = await User.findOne({ phone });
+        // 1. Check if user is already authenticated (Linking Phone Flow / Google Signup)
+        let token;
+        if (req.cookies.access_token) {
+            token = req.cookies.access_token;
+        } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
 
-        // Block Unregistered Users
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                user = await User.findById(decoded.id);
+
+                if (user) {
+                    // Check if this phone is already taken by ANOTHER user
+                    const existingUser = await User.findOne({ phone });
+                    if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+                        return res.status(400).json({ message: 'Phone number already in use by another account' });
+                    }
+
+                    // Assign phone to this user (so verifyOtp can find it later)
+                    user.phone = phone;
+                }
+            } catch (err) {
+                // Token invalid/expired - treat as Guest
+                console.log('OTP Token verification failed, proceeding as guest', err.message);
+            }
+        }
+
+        // 2. Guest Flow (Login)
         if (!user) {
-            return res.status(404).json({
-                message: 'This phone number is not registered. Please sign up using Google first.',
-                code: 'USER_NOT_FOUND'
-            });
+            user = await User.findOne({ phone });
+            // Block Unregistered Users trying to login via OTP
+            if (!user) {
+                return res.status(404).json({
+                    message: 'This phone number is not registered. Please sign up using Google first.',
+                    code: 'USER_NOT_FOUND'
+                });
+            }
         }
 
         user.otp = otp;
@@ -210,7 +241,7 @@ exports.sendOtp = async (req, res) => {
         await user.save();
 
         // Mock Send Log
-        logger.info(`MOCK OTP Sent to ${phone}: ${otp}`);
+        logger.info(`MOCK OTP Sent to ${phone} (User: ${user.username}): ${otp}`);
 
         res.status(200).json({
             message: 'OTP sent successfully (MOCK: 123456)',

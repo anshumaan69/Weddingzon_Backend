@@ -338,10 +338,24 @@ Error (4xx/5xx):
      "success": true,
      "message": "Photos uploaded",
       "data": [
-        { "url": "https://... (Signed URL for immediate display)", "isProfile": true, "restricted": false },
-        { "url": "...", "isProfile": false, "restricted": true }
+        { 
+           "_id": "65b...",
+           "url": "https://... (Signed S3 URL)", 
+           "key": "weddingzon/users/.../uuid_orig.webp",
+           "isProfile": true, 
+           "order": 0,
+           "uploadedAt": "2024-01-15T..."
+        },
+        { 
+           "_id": "65c...",
+           "url": "https://... (Signed S3 URL)", 
+           "isProfile": false,
+           "order": 1
+        }
       ]
    }
+   
+   Note: The first photo uploaded (if none exist) is automatically set as the profile photo.
 
 5. DELETE PHOTO
    DELETE /users/photos/:photoId
