@@ -446,8 +446,15 @@ exports.refreshToken = async (req, res) => {
 
 exports.logout = async (req, res) => {
     clearCookies(req, res);
-    logger.info('User Logged Out');
-    res.status(200).json({ message: 'Logged out' });
+
+    // Safety Net: Explicitly expire them manually just in case
+    const options = getCookieOptions();
+    res.cookie('access_token', '', { ...options, maxAge: 0 });
+    res.cookie('refresh_token', '', { ...options, maxAge: 0 });
+    res.cookie('csrf_token', '', { ...options, httpOnly: false, maxAge: 0 });
+
+    logger.info('User Logged Out (Cookies Cleared)');
+    res.status(200).json({ message: 'Logged out successfully' });
 };
 
 exports.getMe = async (req, res) => {
