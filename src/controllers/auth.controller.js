@@ -212,11 +212,13 @@ exports.sendOtp = async (req, res) => {
                     // Check if this phone is already taken by ANOTHER user
                     const existingUser = await User.findOne({ phone });
                     if (existingUser && existingUser._id.toString() !== user._id.toString()) {
-                        return res.status(400).json({ message: 'Phone number already in use by another account' });
+                        // Phone collision: User wants to log into the OTHER account
+                        // Switch target user for OTP generation to the existing owner of this phone
+                        user = existingUser;
+                    } else {
+                        // No collision: Link phone to CURRENT user
+                        user.phone = phone;
                     }
-
-                    // Assign phone to this user (so verifyOtp can find it later)
-                    user.phone = phone;
                 }
             } catch (err) {
                 // Token invalid/expired - treat as Guest
