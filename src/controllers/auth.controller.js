@@ -411,11 +411,19 @@ exports.registerDetails = async (req, res) => {
 };
 
 exports.refreshToken = async (req, res) => {
-    const incomingRefreshToken = req.cookies.refresh_token || req.body.refreshToken;
-    if (!incomingRefreshToken) return res.status(401).json({ message: 'No refresh token' });
-
     try {
+        const incomingRefreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
+        if (!incomingRefreshToken) {
+            // Only log if explicit body token is missing too, common for first load
+            return res.status(401).json({ message: 'No refresh token' });
+        }
+
         const secret = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET;
+        if (!secret) {
+            logger.error('CRITICAL: JWT Secret missing in Refresh Token logic');
+            return res.status(500).json({ message: 'Server configuration error' });
+        }
+
         const decoded = jwt.verify(incomingRefreshToken, secret);
 
         if (decoded.type !== 'refresh') throw new Error('Invalid type');
@@ -439,6 +447,7 @@ exports.refreshToken = async (req, res) => {
 
         res.status(200).json({ success: true, accessToken: newAccessToken });
     } catch (error) {
+        logger.error('Refresh Token Failed', { error: error.message, stack: error.stack });
         clearCookies(req, res);
         res.status(401).json({ message: 'Session expired' });
     }

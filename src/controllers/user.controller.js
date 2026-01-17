@@ -128,12 +128,15 @@ exports.getFeed = async (req, res) => {
                 };
             }));
 
+            // Use the signed URL from the processed photos array (sorted with profile first)
+            const signedProfilePhoto = photos.length > 0 ? photos[0].url : null;
+
             return {
                 _id: userObj._id,
                 username: userObj.username,
                 first_name: userObj.first_name,
                 last_name: userObj.last_name,
-                profilePhoto: userObj.profilePhoto, // This might be stale if we relied on separate field, but usually frontend uses photos[0]
+                profilePhoto: signedProfilePhoto || userObj.profilePhoto, // Fallback to DB value if processing fails
                 bio: userObj.bio,
                 photos: photos,
                 role: userObj.role,
