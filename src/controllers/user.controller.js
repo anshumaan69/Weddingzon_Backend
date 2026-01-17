@@ -472,24 +472,68 @@ exports.uploadPhotos = async (req, res) => {
 // @access  Private 
 exports.getUserProfile = async (req, res) => {
     try {
-        const user = await User.findOne({ username: req.params.username })
+        const targetUsername = req.params.username;
+        const currentUser = req.user;
+
+        const user = await User.findOne({ username: targetUsername })
             .select('-password -__v');
 
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Presign Photos
         const userObj = user.toObject();
+        const isMe = currentUser._id.toString() === userObj._id.toString();
+        const isAdmin = ['admin', 'superadmin'].includes(currentUser.role);
+
+        let accessGranted = isMe || isAdmin;
+
+        // If not me/admin, check permissions
+        if (!accessGranted) {
+            const [connection, photoRequest] = await Promise.all([
+                ConnectionRequest.findOne({
+                    $or: [
+                        { requester: currentUser._id, recipient: userObj._id, status: 'accepted' },
+                        { requester: userObj._id, recipient: currentUser._id, status: 'accepted' }
+                    ]
+                }),
+                PhotoAccessRequest.findOne({
+                    requester: currentUser._id,
+                    targetUser: userObj._id,
+                    status: 'granted'
+                })
+            ]);
+
+            if (connection || photoRequest) {
+                accessGranted = true;
+            }
+        }
+
+        // Process Photos based on Access
         if (userObj.photos && userObj.photos.length > 0) {
             userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
-                let signedUrl = null;
-                if (photo.key) {
-                    signedUrl = await getPreSignedUrl(photo.key);
+                let keyToSign = photo.key;
+
+                // PRIVACY LOGIC: 
+                // If NO Access AND NOT Profile Photo -> Use Blurred Key
+                if (!accessGranted && !photo.isProfile) {
+                    // create new key name by replacing _orig with _blur
+                    // Assumption: keys are stored as ".../uuid_orig.webp"
+                    // Fallback: If naming convention fails, we just don't sign or show placeholder? 
+                    // For now, let's try strict replacement.
+                    if (keyToSign && keyToSign.includes('_orig.webp')) {
+                        keyToSign = keyToSign.replace('_orig.webp', '_blur.webp');
+                    }
                 }
-                return { ...photo, url: signedUrl || photo.url };
+
+                let signedUrl = null;
+                if (keyToSign) {
+                    signedUrl = await getPreSignedUrl(keyToSign);
+                }
+
+                // Return modified photo object (don't mutate DB object, just response)
+                return { ...photo, url: signedUrl || photo.url, key: keyToSign };
             }));
 
-            // Update profilePhoto link if needed
-            // (Assuming profilePhoto string matches one of the photos, update it to signed version)
+            // Sync profilePhoto field
             const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
             if (profilePhotoObj) {
                 userObj.profilePhoto = profilePhotoObj.url;
