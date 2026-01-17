@@ -405,18 +405,10 @@ exports.registerDetails = async (req, res) => {
 
         if (req.body.about_me) user.about_me = req.body.about_me;
 
-        // Username Update Logic
+        // Username Update Logic REMOVED
+        // Usernames are now immutable and auto-generated
         if (req.body.username && req.body.username !== user.username) {
-            // Prevent change if profile is already complete
-            if (user.is_profile_complete) {
-                return res.status(400).json({ message: 'Username cannot be changed once profile is complete' });
-            }
-
-            const existingUsername = await User.findOne({ username: req.body.username });
-            if (existingUsername) {
-                return res.status(400).json({ message: 'Username is already taken' });
-            }
-            user.username = req.body.username;
+            return res.status(400).json({ message: 'Username cannot be changed.' });
         }
 
         // Only mark complete if we have the essentials
@@ -507,6 +499,13 @@ exports.getMe = async (req, res) => {
         const user = req.user; // Already retrieved from Cache or DB in middleware
 
         if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Clone user object since req.user might be frozen/const from middleware
+        let userObj = { ...user };
+
+        const startSign = performance.now(); // Fix missing declaration if performance is global in Node 22, otherwise might need import. 
+        // Node 16+ has performance globally available via perf_hooks unless overridden. 
+        // Assuming global usage given previous context.
 
         if (userObj.photos && userObj.photos.length > 0) {
             // ALWAYS sign all photos for getMe to ensure mobile clients (Flutter) work out of the box
