@@ -10,7 +10,9 @@ const logger = require('../utils/logger');
 
 // Old getMe removed
 const { OAuth2Client } = require('google-auth-library');
-const twilio = require('twilio');
+// Twilio Removed by User Request
+// Mock Mode Active
+
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
@@ -24,13 +26,6 @@ const client = new OAuth2Client(
 console.log('[DEBUG] Auth Controller Loaded');
 console.log('[DEBUG] GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID); // Log actual value for debugging
 console.log('[DEBUG] CALLBACK_URL:', process.env.CALLBACK_URL);
-
-let twilioClient;
-try {
-    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-} catch (e) {
-    console.warn('Twilio Client Init Failed (Check Credentials):', e.message);
-}
 
 // --- Helper Functions ---
 
@@ -196,45 +191,29 @@ exports.sendOtp = async (req, res) => {
     if (!phone.startsWith('+')) phone = '+91' + phone;
 
     try {
-        if (!twilioClient) {
-            return res.status(500).json({ message: 'SMS Service not configured' });
-        }
-
-        // Generate 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otp = '123456';
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 Minutes
 
-        // Find or Create User (Partial) to store OTP
+        // Find User
         let user = await User.findOne({ phone });
+
+        // Block Unregistered Users
         if (!user) {
-            // Check if phone matches any unverified user? Or just create placeholder?
-            // Strategy: Create a "stub" user or just update if exists.
-            // If new, we can create a skeletal user or just delay creation until verify?
-            // Better: Store OTP in User. If user doesn't exist, we can't store it in DB easily without creating one.
-            // But we don't want to pollute DB with spammed numbers.
-            // Alternative: Upsert a user with `is_phone_verified: false`
-            user = await User.create({
-                phone,
-                otp,
-                otpExpires,
-                is_phone_verified: false
+            return res.status(404).json({
+                message: 'This phone number is not registered. Please sign up using Google first.',
+                code: 'USER_NOT_FOUND'
             });
-        } else {
-            user.otp = otp;
-            user.otpExpires = otpExpires;
-            await user.save();
         }
 
-        // Send via Twilio
-        await twilioClient.messages.create({
-            body: `Your WeddingZon OTP is ${otp}. Valid for 10 minutes.`,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: phone
-        });
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        await user.save();
 
-        logger.info(`OTP Sent via Twilio: ${phone}`);
+        // Mock Send Log
+        logger.info(`MOCK OTP Sent to ${phone}: ${otp}`);
+
         res.status(200).json({
-            message: 'OTP sent successfully',
+            message: 'OTP sent successfully (MOCK: 123456)',
             success: true
         });
 

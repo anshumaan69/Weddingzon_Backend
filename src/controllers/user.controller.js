@@ -521,7 +521,7 @@ exports.deletePhoto = async (req, res) => {
         // Delete from S3
         if (photo.key) {
             // Delete Original
-            await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: photo.key }));
+            await s3Client.send(new DeleteObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: photo.key }));
 
             // Delete Blurred (Infer key from original if strictly named, or just skip if not stored. 
             // Our logic uses {key}_orig.webp vs {key}_blur.webp, but we stored 'key' as the whole path.
@@ -529,7 +529,7 @@ exports.deletePhoto = async (req, res) => {
             if (photo.key.includes('_orig.webp')) {
                 const blurKey = photo.key.replace('_orig.webp', '_blur.webp');
                 try {
-                    await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: blurKey }));
+                    await s3Client.send(new DeleteObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: blurKey }));
                 } catch (e) {
                     logger.warn('Failed to delete blur key', { key: blurKey });
                 }
