@@ -205,11 +205,13 @@ Error (4xx/5xx):
    Response (200 OK):
    {
      "_id": "...",
-     "username": "johndoe",
      "email": "john@example.com",
      "role": "groom",
-     "is_profile_complete": true
+     "is_profile_complete": true,
+     "profilePhoto": "https://... (Signed S3 URL if ?full=true or standard signed url)"
    }
+   
+   Note: Use `?full=true` query param to sign ALL photos in the `photos` array (slow). Default signs only `profilePhoto`.
 
 6. LOGOUT
    POST /auth/logout
@@ -250,7 +252,7 @@ Error (4xx/5xx):
         {
           "_id": "65b...",
           "username": "alice",
-          "profilePhoto": "https://s3... (Signed URL)",
+          "profilePhoto": "https://s3... (Signed S3 URL)",
           "photos": [
              { "url": "...", "isProfile": true, "restricted": false },
              { "url": "...", "isProfile": false, "restricted": true } // Restricted photos are blurred
@@ -317,7 +319,10 @@ Error (4xx/5xx):
      "first_name": "Alice",
      "last_name": "Wonder",
      "about_me": "...",
-     "photos": [ ... ]
+     "profilePhoto": "https://... (Signed URL)",
+     "photos": [ 
+        { "url": "https://... (Signed)", "key": "...", "isProfile": true } 
+     ]
    }
 
 4. UPLOAD PHOTOS
@@ -332,10 +337,10 @@ Error (4xx/5xx):
    {
      "success": true,
      "message": "Photos uploaded",
-     "data": [
-       { "url": "...", "isProfile": true, "restricted": false },
-       { "url": "...", "isProfile": false, "restricted": true }
-     ]
+      "data": [
+        { "url": "https://... (Signed URL for immediate display)", "isProfile": true, "restricted": false },
+        { "url": "...", "isProfile": false, "restricted": true }
+      ]
    }
 
 5. DELETE PHOTO

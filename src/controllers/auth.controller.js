@@ -477,42 +477,23 @@ exports.getMe = async (req, res) => {
 
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // --- Selective Photo Signing Optimization ---
-        const userObj = user;
-        const wantFullPhotos = req.query.full === 'true';
-
-        const startSign = performance.now();
-
         if (userObj.photos && userObj.photos.length > 0) {
-            if (wantFullPhotos) {
-                // Heavy: Sign ALL photos (Only for Onboarding/Edit Profile)
-                userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
-                    let signedUrl = null;
-                    if (photo.key) {
-                        signedUrl = await getPreSignedUrl(photo.key);
-                    }
-                    return { ...photo, url: signedUrl || photo.url };
-                }));
+            // ALWAYS sign all photos for getMe to ensure mobile clients (Flutter) work out of the box
+            // The previous optimization required ?full=true which the client might not be sending.
+            // Performance impact: minimal for ~5-10 photos.
 
-                // Update profilePhoto link if needed
-                const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
-                if (profilePhotoObj && profilePhotoObj.url) {
-                    userObj.profilePhoto = profilePhotoObj.url;
+            userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
+                let signedUrl = null;
+                if (photo.key) {
+                    signedUrl = await getPreSignedUrl(photo.key);
                 }
-            } else {
-                // Light: Sign ONLY Profile Photo (Default for Feed/Header)
-                // We don't sign the whole 'photos' array, leaving the keys/URLs as is (expired or raw)
-                // We only ensure userObj.profilePhoto is fresh.
+                return { ...photo, url: signedUrl || photo.url };
+            }));
 
-                const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
-                if (profilePhotoObj && profilePhotoObj.key) {
-                    const signedUrl = await getPreSignedUrl(profilePhotoObj.key);
-                    userObj.profilePhoto = signedUrl;
-
-                    // Also update it inside the array just in case frontend reads from there
-                    // But we won't iterate the whole array
-                    profilePhotoObj.url = signedUrl;
-                }
+            // Sync profilePhoto link
+            const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
+            if (profilePhotoObj && profilePhotoObj.url) {
+                userObj.profilePhoto = profilePhotoObj.url;
             }
         }
         const endSign = performance.now();
