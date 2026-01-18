@@ -26,6 +26,7 @@ exports.getFeed = async (req, res) => {
         const query = {
             status: 'active',
             _id: { $ne: req.user._id }, // Exclude current user
+            is_profile_complete: true, // Show only completed profiles
             $or: [
                 { 'photos.0': { $exists: true } },
                 { profilePhoto: { $ne: null } }
@@ -190,6 +191,7 @@ exports.searchUsers = async (req, res) => {
         const query = {
             status: 'active',
             _id: { $ne: req.user._id },
+            is_profile_complete: true, // Show only completed profiles
             $or: [
                 { 'photos.0': { $exists: true } },
                 { profilePhoto: { $ne: null } }

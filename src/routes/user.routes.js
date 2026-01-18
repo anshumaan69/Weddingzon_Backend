@@ -6,13 +6,20 @@ const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB limit
 const { protect } = require('../middlewares/authMiddleware');
+const { ensureProfileComplete } = require('../middlewares/profileMiddleware');
 
 router.use(protect);
 
-router.get('/search', require('../controllers/user.controller').searchUsers);
-router.get('/feed', getFeed);
-router.post('/upload-photos', upload.array('photos', 10), uploadPhotos);
-router.get('/:username', getUserProfile);
+router.get('/search', protect, ensureProfileComplete, require('../controllers/user.controller').searchUsers);
+router.get('/feed', protect, ensureProfileComplete, getFeed);
+router.post('/upload-photos', protect, upload.array('photos', 10), uploadPhotos); // Uploading photos might be PART of completing profile? 
+// Actually, if they are uploading photos during onboarding, we shouldn't block it. 
+// But the user said "prevent user from going to feed, chat, requests". 
+// Let's assume uploading photos *after* onboarding is what we are protecting here?
+// The onboarding flow uses `registerDetails`.
+// `upload-photos` seems to be a separate route.
+// Let's block /feed and profile viewing for now.
+router.get('/:username', protect, ensureProfileComplete, getUserProfile);
 router.delete('/photos/:photoId', require('../controllers/user.controller').deletePhoto);
 router.patch('/photos/:photoId/set-profile', require('../controllers/user.controller').setProfilePhoto);
 

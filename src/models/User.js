@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema(
             unique: true,
             sparse: true,
         },
+        temp_phone: {
+            type: String,
+            sparse: true,
+        },
         auth_provider: {
             type: String,
             enum: ['google', 'local', 'google_phone'],

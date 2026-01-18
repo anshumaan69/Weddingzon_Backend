@@ -210,14 +210,22 @@ exports.sendOtp = async (req, res) => {
 
                 if (user) {
                     // Check if this phone is already taken by ANOTHER user
-                    const existingUser = await User.findOne({ phone });
+                    const existingUser = await User.findOne({
+                        $or: [{ phone }, { temp_phone: phone }]
+                    });
+
                     if (existingUser && existingUser._id.toString() !== user._id.toString()) {
-                        // Phone collision: User wants to log into the OTHER account
-                        // Switch target user for OTP generation to the existing owner of this phone
-                        user = existingUser;
+                        // Phone collision
+                        if (existingUser.phone === phone) {
+                            // It is a verified phone of another user -> Treat as Login attempt to that account
+                            user = existingUser;
+                        } else {
+                            // It is a temp_phone of another user -> Conflict
+                            return res.status(400).json({ message: 'Phone number is already being verified by another account' });
+                        }
                     } else {
-                        // No collision: Link phone to CURRENT user
-                        user.phone = phone;
+                        // No collision: Link phone to CURRENT user (Temporarily)
+                        user.temp_phone = phone;
                     }
                 }
             } catch (err) {
@@ -266,7 +274,10 @@ exports.verifyOtp = async (req, res) => {
 
     try {
         // Fetch User with OTP fields
-        const user = await User.findOne({ phone }).select('+otp +otpExpires');
+        // Look in both phone (Login) and temp_phone (Signup/Linking)
+        const user = await User.findOne({
+            $or: [{ phone }, { temp_phone: phone }]
+        }).select('+otp +otpExpires +temp_phone +phone');
 
         if (!user || !user.otp || !user.otpExpires) {
             return res.status(400).json({ message: 'Invalid or expired OTP' });
@@ -285,6 +296,12 @@ exports.verifyOtp = async (req, res) => {
         // Success: Clear OTP
         user.otp = undefined;
         user.otpExpires = undefined;
+
+        // Finalize Phone Link if it was temporary
+        if (user.temp_phone === phone) {
+            user.phone = phone;
+            user.temp_phone = undefined;
+        }
 
         // Mark Verified if not
         if (!user.is_phone_verified) user.is_phone_verified = true;
@@ -325,7 +342,26 @@ exports.registerDetails = async (req, res) => {
         if (last_name) user.last_name = last_name;
         if (role) user.role = role;
         if (created_for) user.created_for = created_for;
-        user.dob = dob || user.dob;
+        if (dob) {
+            user.dob = dob;
+            // Age Validation
+            const toDate = new Date();
+            const birthDate = new Date(dob);
+            let age = toDate.getFullYear() - birthDate.getFullYear();
+            const m = toDate.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && toDate.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            if (age < 18) {
+                return res.status(400).json({ message: 'You must be at least 18 years old.' });
+            }
+            if (age > 150) {
+                return res.status(400).json({ message: 'Invalid age. Maximum age allowed is 150 years.' });
+            }
+        } else {
+            // Persist existing dob
+            user.dob = user.dob;
+        }
 
         // Basic Details
         if (gender) user.gender = gender;
