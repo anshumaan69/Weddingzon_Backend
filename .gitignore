@@ -114,3 +114,4 @@ dist
 .vscode
 *.swp
 *.swo
+src/config/serviceAccountKey.json
