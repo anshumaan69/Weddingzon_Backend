@@ -17,7 +17,7 @@ const resolveUser = async (identifier) => {
     return user;
 };
 
-const { notifyUser } = require('../services/notification.service');
+
 
 // @desc    Send Connection Request (Interest)
 // @route   POST /api/connections/send
