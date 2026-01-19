@@ -760,11 +760,11 @@ exports.getNearbyUsers = async (req, res) => {
             }
         ]);
 
-        // Post-process: Add Jitter for Privacy
+        // Post-process: Add Jitter for Privacy and Sign URLs
         // +/- 0.005 degrees is approx +/- 500 meters
         const JITTER_RANGE = 0.005;
 
-        const sanitizedUsers = users.map(user => {
+        const sanitizedUsers = await Promise.all(users.map(async (user) => {
             if (user.location && user.location.coordinates) {
                 const [exactLng, exactLat] = user.location.coordinates;
 
@@ -774,8 +774,30 @@ exports.getNearbyUsers = async (req, res) => {
 
                 user.location.coordinates = [jitterLng, jitterLat];
             }
+
+            // Sign Profile Photo
+            if (user.photos && user.photos.length > 0) {
+                // Find profile photo object (matching the stored URL or just the one marked isProfile/first)
+                // Since aggregation doesn't guarantee full object methods, we can't reliably trust helper methods.
+                // But we have the 'photos' array from projection.
+                const profilePhotoObj = user.photos.find(p => p.url === user.profilePhoto) || user.photos[0];
+
+                if (profilePhotoObj && profilePhotoObj.key) {
+                    try {
+                        const signedUrl = await getPreSignedUrl(profilePhotoObj.key);
+                        if (signedUrl) user.profilePhoto = signedUrl;
+                    } catch (e) {
+                        // Keep original if signing fails
+                        logger.warn('Failed to sign map photo', { key: profilePhotoObj.key });
+                    }
+                }
+            } else if (user.profilePhoto) {
+                // Fallback: If no photos array but profilePhoto exists (legacy?), try to extract key?
+                // Most likely photos array exists if profilePhoto exists.
+            }
+
             return user;
-        });
+        }));
 
         res.status(200).json({ count: sanitizedUsers.length, users: sanitizedUsers });
     } catch (error) {
