@@ -357,15 +357,53 @@ Error (4xx/5xx):
    
    Note: The first photo uploaded (if none exist) is automatically set as the profile photo.
 
-5. DELETE PHOTO
-   DELETE /users/photos/:photoId
-   Desc: Remove a specific photo from gallery.
-   
+6. SET PROFILE PHOTO
+   PATCH /users/photos/:photoId/set-profile
+   Desc: Set a specific photo as the main profile photo. Moves it to index 0.
+
    Response (200 OK):
    {
      "success": true,
-     "message": "Photo deleted",
-     "data": [ ...remaining photos ]
+     "data": [ ...updated photo list with new order... ]
+   }
+
+7. UPDATE LOCATION
+   PATCH /users/location
+   Desc: Update the user's current GPS location.
+   
+   Request Body:
+   {
+     "latitude": 26.45,
+     "longitude": 80.33
+   }
+
+   Response (200 OK):
+   {
+     "message": "Location updated",
+     "location": { "type": "Point", "coordinates": [...] }
+   }
+
+8. GET NEARBY USERS (MAP)
+   GET /users/nearby
+   Desc: Find users within a specific radius.
+   
+   Query Params:
+     - latitude: 26.45
+     - longitude: 80.33
+     - radius: 50 (in km, default 50)
+
+   Response (200 OK):
+   {
+     "count": 5,
+     "users": [
+       {
+         "_id": "...",
+         "username": "...",
+         "location": { "coordinates": [lng, lat] }, // Jittered/Fuzzed for privacy (~500m accuracy)
+         "distance": 4321.5, // Meters
+         "profilePhoto": "https://... (Signed S3 URL)"
+       }
+     ]
    }
 
 

@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const mongoose = require('mongoose');
 const PhotoAccessRequest = require('../models/PhotoAccessRequest');
 const ConnectionRequest = require('../models/ConnectionRequest');
 // const cloudinary = require('../config/cloudinary'); // Deprecated
@@ -533,6 +534,9 @@ exports.getUserProfile = async (req, res) => {
 
         // Process Photos based on Access
         if (userObj.photos && userObj.photos.length > 0) {
+            // Sort: Profile Photo first
+            userObj.photos.sort((a, b) => (b.isProfile ? 1 : 0) - (a.isProfile ? 1 : 0));
+
             userObj.photos = await Promise.all(userObj.photos.map(async (photo) => {
                 let keyToSign = photo.key;
 
@@ -658,6 +662,13 @@ exports.setProfilePhoto = async (req, res) => {
         photo.isProfile = true;
         user.profilePhoto = photo.url;
 
+        // Reorder: Move profile photo to index 0
+        const photoIndex = user.photos.indexOf(photo);
+        if (photoIndex > -1) {
+            user.photos.splice(photoIndex, 1);
+            user.photos.unshift(photo);
+        }
+
         await user.save();
 
 
@@ -714,24 +725,59 @@ exports.getNearbyUsers = async (req, res) => {
     }
 
     try {
-        // Find users within radius
-        const users = await User.find({
-            location: {
-                $near: {
-                    $geometry: {
-                        type: 'Point',
-                        coordinates: [parseFloat(longitude), parseFloat(latitude)]
-                    },
-                    $maxDistance: parseInt(radius) * 1000 // Convert km to meters
+        const lat = parseFloat(latitude);
+        const lng = parseFloat(longitude);
+        const maxDistMeters = parseInt(radius) * 1000;
+
+        // Use aggregation to get distance and user data
+        const users = await User.aggregate([
+            {
+                $geoNear: {
+                    near: { type: 'Point', coordinates: [lng, lat] },
+                    distanceField: 'distance', // Meters
+                    maxDistance: maxDistMeters,
+                    spherical: true,
+                    key: 'location', // Explicitly specify the index key
+                    query: { status: 'active', _id: { $ne: new mongoose.Types.ObjectId(req.user._id) } }
                 }
             },
-            _id: { $ne: req.user._id }, // Exclude self
-            status: 'active' // Only active users
-        })
-            .select('first_name dob gender height religion occupation profilePhoto location photos about_me username') // Select relevant fields for map card
-            .limit(100); // Limit results
+            { $limit: 100 },
+            {
+                $project: {
+                    first_name: 1,
+                    last_name: 1,
+                    dob: 1,
+                    gender: 1,
+                    religion: 1,
+                    occupation: 1,
+                    profilePhoto: 1,
+                    location: 1,
+                    about_me: 1,
+                    username: 1,
+                    distance: 1, // Include calculated distance
+                    photos: 1 // Include photos for fallback
+                }
+            }
+        ]);
 
-        res.status(200).json({ count: users.length, users });
+        // Post-process: Add Jitter for Privacy
+        // +/- 0.005 degrees is approx +/- 500 meters
+        const JITTER_RANGE = 0.005;
+
+        const sanitizedUsers = users.map(user => {
+            if (user.location && user.location.coordinates) {
+                const [exactLng, exactLat] = user.location.coordinates;
+
+                // Add random noise
+                const jitterLat = exactLat + (Math.random() - 0.5) * JITTER_RANGE;
+                const jitterLng = exactLng + (Math.random() - 0.5) * JITTER_RANGE;
+
+                user.location.coordinates = [jitterLng, jitterLat];
+            }
+            return user;
+        });
+
+        res.status(200).json({ count: sanitizedUsers.length, users: sanitizedUsers });
     } catch (error) {
         logger.error('Get Nearby Users Error', { error: error.message });
         res.status(500).json({ message: 'Failed to fetch nearby users' });

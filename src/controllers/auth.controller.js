@@ -155,13 +155,13 @@ exports.googleAuth = async (req, res) => {
                 last_name: family_name,
                 auth_provider: 'google',
                 username: username,
-                avatar: picture,
+                profilePhoto: picture,
                 is_profile_complete: false // Consistent init
             });
             await user.save();
-        } else if (!user.avatar) {
-            // Update avatar if missing
-            user.avatar = picture;
+        } else if (!user.profilePhoto) {
+            // Update profilePhoto if missing
+            user.profilePhoto = picture;
 
             // Self-heal: Fix invalid location data (missing coordinates) that causes save errors
             if (user.location && user.location.type === 'Point' && (!user.location.coordinates || user.location.coordinates.length === 0)) {
