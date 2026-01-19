@@ -137,6 +137,19 @@ const userSchema = new mongoose.Schema(
         suitable_time_to_call: { type: String },
         about_me: { type: String },
 
+        // --- GeoLocation ---
+        location: {
+            type: {
+                type: String,
+                enum: ['Point'],
+                default: 'Point',
+            },
+            coordinates: {
+                type: [Number], // [longitude, latitude]
+                index: '2dsphere',
+            },
+        },
+
         // --- Preferences (Future Proofing) ---
         property_types: [String],
         land_types: [String],
@@ -182,5 +195,6 @@ userSchema.index({ status: 1, _id: -1 }); // Critical for Feed Pagination
 // userSchema.index({ email: 1 }); // Already indexed by unique: true
 // userSchema.index({ phone: 1 }); // Already indexed by unique: true
 userSchema.index({ 'photos.isProfile': 1 }); // Finding profile photos
+userSchema.index({ location: '2dsphere' }); // GeoSpatial Index for Nearby Search
 
 module.exports = mongoose.model('User', userSchema);

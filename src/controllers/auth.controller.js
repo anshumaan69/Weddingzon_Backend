@@ -392,6 +392,7 @@ exports.registerDetails = async (req, res) => {
         if (req.body.highest_education) user.highest_education = req.body.highest_education;
         if (req.body.educational_details) user.educational_details = req.body.educational_details;
         if (req.body.occupation) user.occupation = req.body.occupation;
+        if (req.body.employed_in) user.employed_in = req.body.employed_in;
         if (req.body.personal_income) user.personal_income = req.body.personal_income;
         if (req.body.working_sector) user.working_sector = req.body.working_sector;
         if (req.body.working_location) user.working_location = req.body.working_location;
@@ -449,10 +450,11 @@ exports.registerDetails = async (req, res) => {
             return res.status(400).json({ message: 'Username cannot be changed.' });
         }
 
-        // Only mark complete if we have the essentials
-        console.log('User Profile Updated. About Me Length:', user.about_me ? user.about_me.length : 0);
-        if (user.first_name && user.dob && user.gender && user.religion && user.about_me) {
-            user.is_profile_complete = true;
+        // Only mark complete if explicitly requested AND essentials are present
+        if (req.body.is_profile_complete) {
+            if (user.first_name && user.dob && user.gender && user.religion && user.about_me) {
+                user.is_profile_complete = true;
+            }
         }
 
         await user.save();

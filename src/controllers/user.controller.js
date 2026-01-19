@@ -361,23 +361,14 @@ exports.uploadPhotos = async (req, res) => {
             return res.status(400).json({ message: 'Maximum 10 photos allowed' });
         }
 
-        const photoData = [];
+        const successUploads = [];
+        const failedUploads = [];
 
-        // Local uploadToS3 helper removed/refactored if needed, OR keep if specialized
-        // Since we have uploadToS3 in utils, we could try to reuse it, but this one does logging and URL returns differently.
-        // For now, let's keep the custom one inside uploadPhotos or refactor it.
-        // Actually, let's leave internal logic as is but note we should ideally move it.
-        // Wait, I see I removed PutObjectCommand import, so I MUST update this internal function.
-
-        // Helper to upload buffer to S3 (Local to this function for now)
+        // Helper to upload buffer to S3 (Local to this function)
         const uploadLocal = async (buffer, key) => {
-            // We can actually use the exported uploadToS3 if we construct a file object, but buffer is raw here.
-            // Let's re-add PutObjectCommand import or use s3Client directly.
-            // I will use s3Client directly as before.
             try {
-                // ... (logic)
                 // Need PutObjectCommand
-                const { PutObjectCommand } = require('@aws-sdk/client-s3'); // Re-require for safety inside function
+                const { PutObjectCommand } = require('@aws-sdk/client-s3');
                 const command = new PutObjectCommand({
                     Bucket: process.env.AWS_BUCKET_NAME,
                     Key: key,
@@ -385,72 +376,97 @@ exports.uploadPhotos = async (req, res) => {
                     ContentType: 'image/webp',
                 });
                 await s3Client.send(command);
-                // ...
                 return `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${key}`;
             } catch (err) {
+                console.error('S3 Upload Error Helper:', err);
                 throw err;
             }
         };
 
-        for (const file of req.files) {
-            const fileId = uuidv4();
-            const folderPrefix = 'weedingzon/users'; // Based on provided ARN path
-            const originalKey = `${folderPrefix}/${user._id}/${fileId}_orig.webp`;
-            const blurredKey = `${folderPrefix}/${user._id}/${fileId}_blur.webp`;
+        const processFile = async (file) => {
+            try {
+                const fileId = uuidv4();
+                const folderPrefix = 'weedingzon/users';
+                const originalKey = `${folderPrefix}/${user._id}/${fileId}_orig.webp`;
+                const blurredKey = `${folderPrefix}/${user._id}/${fileId}_blur.webp`;
 
-            // 1. Process Original (Watermarked)
-            // Resize to max 1920x1080 to save space, Convert to WebP
-            // Add Watermark ("WeddingZon" text bottom right)
-            const originalBuffer = await sharp(file.buffer)
-                .resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
-                .composite([{
-                    input: Buffer.from(`
+                // 1. Process Original (Watermarked)
+                const originalBuffer = await sharp(file.buffer)
+                    .resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
+                    .composite([{
+                        input: Buffer.from(`
                         <svg width="500" height="100" viewBox="0 0 500 100">
-                            <!-- Drop Shadow for contrast -->
                             <text x="95%" y="90%" font-family="sans-serif" font-weight="bold" font-size="48" fill="black" fill-opacity="0.5" text-anchor="end">WeddingZon</text>
-                            <!-- Main Text -->
                             <text x="94.5%" y="89%" font-family="sans-serif" font-weight="bold" font-size="48" fill="white" fill-opacity="0.8" text-anchor="end">WeddingZon</text>
                         </svg>
                      `),
-                    gravity: 'southeast'
-                }])
-                .webp({ quality: 80 })
-                .toBuffer();
+                        gravity: 'southeast'
+                    }])
+                    .webp({ quality: 80 })
+                    .toBuffer();
 
-            const originalUrl = await uploadLocal(originalBuffer, originalKey);
+                const originalUrl = await uploadLocal(originalBuffer, originalKey);
 
-            // 2. Process Blurred (For Restricted Access)
-            // Resize small -> Blur -> WebP Low Quality
-            const blurredBuffer = await sharp(file.buffer)
-                .resize({ width: 400 }) // Smaller for blur
-                .blur(20)               // Sigma 20
-                .webp({ quality: 20 })
-                .toBuffer();
+                // 2. Process Blurred
+                const blurredBuffer = await sharp(file.buffer)
+                    .resize({ width: 400 })
+                    .blur(20)
+                    .webp({ quality: 20 })
+                    .toBuffer();
 
-            const blurredUrl = await uploadLocal(blurredBuffer, blurredKey);
+                const blurredUrl = await uploadLocal(blurredBuffer, blurredKey);
 
-            photoData.push({
-                url: originalUrl,
-                blurredUrl: blurredUrl,
-                key: originalKey, // Store main key for deletion reference
-                isProfile: false,
-                order: user.photos.length + photoData.length
+                return {
+                    success: true,
+                    data: {
+                        url: originalUrl,
+                        blurredUrl: blurredUrl,
+                        key: originalKey,
+                        isProfile: false,
+                        // We'll set order later based on successful count
+                    }
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    filename: file.originalname,
+                    error: error.message
+                };
+            }
+        };
+
+        // Parallel processing of all files
+        const results = await Promise.all(req.files.map(file => processFile(file)));
+
+        results.forEach(result => {
+            if (result.success) {
+                successUploads.push(result.data);
+            } else {
+                failedUploads.push({ filename: result.filename, error: result.error });
+            }
+        });
+
+        if (successUploads.length > 0) {
+            // Assign order based on current length + index
+            successUploads.forEach((photo, idx) => {
+                photo.order = user.photos.length + idx;
             });
+
+            user.photos.push(...successUploads);
+
+            // If no profile photo set, set first one
+            if (!user.photos.find(p => p.isProfile) && user.photos.length > 0) {
+                user.photos[0].isProfile = true;
+                user.profilePhoto = user.photos[0].url;
+            }
+
+            await user.save();
+            logger.info(`S3 Photos Uploaded: ${req.user.username} (${successUploads.length} successful, ${failedUploads.length} failed)`);
+        } else {
+            logger.warn(`S3 Photos Upload Failed: ${req.user.username} (All ${failedUploads.length} failed)`);
         }
 
-        user.photos.push(...photoData);
-
-        // If no profile photo set, set first one
-        if (!user.photos.find(p => p.isProfile) && user.photos.length > 0) {
-            user.photos[0].isProfile = true;
-            user.profilePhoto = user.photos[0].url;
-        }
-
-        await user.save();
-
-        logger.info(`S3 Photos Uploaded: ${req.user.username} (${req.files.length} files)`);
-
-        // Generate Presigned URLs for the response so frontend can display them immediately
+        // Generate Presigned URLs for the response (only for the updated/current photo list)
         const responsePhotos = await Promise.all(user.photos.map(async (p) => {
             const pObj = p.toObject();
             if (pObj.key) {
@@ -461,14 +477,17 @@ exports.uploadPhotos = async (req, res) => {
         }));
 
         res.status(200).json({
-            success: true,
-            message: 'Photos uploaded',
-            data: responsePhotos
+            success: successUploads.length > 0,
+            message: successUploads.length > 0
+                ? (failedUploads.length > 0 ? `Uploaded ${successUploads.length} photos. ${failedUploads.length} failed.` : 'Photos uploaded successfully')
+                : 'Failed to upload photos',
+            data: responsePhotos,
+            errors: failedUploads
         });
 
     } catch (error) {
         logger.error('S3 Upload Error', { user: req.user.username, error: error.message });
-        res.status(500).json({ message: 'Upload failed' });
+        res.status(500).json({ message: 'Upload failed', error: error.message });
     }
 };
 
@@ -654,12 +673,69 @@ exports.setProfilePhoto = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Profile photo updated',
             data: responsePhotos
         });
 
     } catch (error) {
-        logger.error('Set Profile Photo Error', { user: req.user.username, error: error.message });
+        logger.error('Set Profile Photo Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+exports.updateLocation = async (req, res) => {
+    const { latitude, longitude } = req.body;
+
+    if (!latitude || !longitude) {
+        return res.status(400).json({ message: 'Latitude and Longitude are required' });
+    }
+
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.location = {
+            type: 'Point',
+            coordinates: [parseFloat(longitude), parseFloat(latitude)] // GeoJSON is [lng, lat]
+        };
+
+        await user.save();
+        res.status(200).json({ message: 'Location updated', location: user.location });
+    } catch (error) {
+        logger.error('Update Location Error', { error: error.message });
+        res.status(500).json({ message: 'Failed to update location' });
+    }
+};
+
+exports.getNearbyUsers = async (req, res) => {
+    const { latitude, longitude, radius = 50 } = req.query; // Radius in KM
+
+    if (!latitude || !longitude) {
+        return res.status(400).json({ message: 'Latitude and Longitude are required' });
+    }
+
+    try {
+        // Find users within radius
+        const users = await User.find({
+            location: {
+                $near: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [parseFloat(longitude), parseFloat(latitude)]
+                    },
+                    $maxDistance: parseInt(radius) * 1000 // Convert km to meters
+                }
+            },
+            _id: { $ne: req.user._id }, // Exclude self
+            status: 'active' // Only active users
+        })
+            .select('first_name dob gender height religion occupation profilePhoto location photos about_me username') // Select relevant fields for map card
+            .limit(100); // Limit results
+
+        res.status(200).json({ count: users.length, users });
+    } catch (error) {
+        logger.error('Get Nearby Users Error', { error: error.message });
+        res.status(500).json({ message: 'Failed to fetch nearby users' });
+    }
+};
+
+
