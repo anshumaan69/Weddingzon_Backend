@@ -11,6 +11,7 @@ const {
     rejectConnectionRequest,
     getConnections,
     getIncomingRequests,
+    getNotifications,
     cancelRequest
 } = require('../controllers/connection.controller');
 const { protect } = require('../middlewares/authMiddleware');
@@ -29,5 +30,6 @@ router.post('/reject', protect, ensureProfileComplete, rejectConnectionRequest);
 router.post('/cancel', protect, ensureProfileComplete, cancelRequest); // New Cancel Route
 router.get('/my-connections', protect, ensureProfileComplete, getConnections);
 router.get('/requests', protect, ensureProfileComplete, getIncomingRequests);
+router.get('/notifications', protect, ensureProfileComplete, getNotifications);
 
 module.exports = router;
