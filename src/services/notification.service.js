@@ -35,7 +35,7 @@ exports.sendPushNotification = async (userIds, { title, body, data = {} }) => {
             tokens: allTokens
         };
 
-        const response = await admin.messaging().sendMulticast(message);
+        const response = await admin.messaging().sendEachForMulticast(message);
 
         // Handle Invalid Tokens (Cleanup)
         if (response.failureCount > 0) {
