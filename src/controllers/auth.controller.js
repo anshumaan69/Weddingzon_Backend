@@ -162,6 +162,12 @@ exports.googleAuth = async (req, res) => {
         } else if (!user.avatar) {
             // Update avatar if missing
             user.avatar = picture;
+
+            // Self-heal: Fix invalid location data (missing coordinates) that causes save errors
+            if (user.location && user.location.type === 'Point' && (!user.location.coordinates || user.location.coordinates.length === 0)) {
+                user.location = undefined;
+            }
+
             await user.save();
         }
 
