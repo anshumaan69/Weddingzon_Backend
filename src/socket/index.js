@@ -1,9 +1,17 @@
+console.log('Socket: Loading jwt...');
 const jwt = require('jsonwebtoken');
+console.log('Socket: Loading User...');
 const User = require('../models/User');
+console.log('Socket: Loading Chat...');
 const Chat = require('../models/Chat');
+console.log('Socket: Loading Logger...');
 const logger = require('../utils/logger');
+console.log('Socket: Loading S3 Utils...');
 const { getSignedFileUrl } = require('../utils/s3');
+console.log('Socket: Loading S3 Config...');
 const { s3Client } = require('../config/s3');
+const { notifyUser } = require('../services/notification.service');
+console.log('Socket: Imports Done');
 
 module.exports = (io) => {
     // Middleware for Authentication
@@ -87,6 +95,17 @@ module.exports = (io) => {
                 }
 
                 logger.info(`Events Emitted to rooms: ${receiverId} and Sender Socket`);
+
+                // Send Push Notification (Fire & Forget)
+                notifyUser(receiverId, {
+                    title: `New Message from ${socket.user.first_name || socket.user.username}`,
+                    body: type === 'image' ? 'Sent a photo' : message,
+                    data: {
+                        type: 'chat_message',
+                        conversationId,
+                        senderId: userId
+                    }
+                });
 
             } catch (error) {
                 logger.error('Socket Send Error', { error: error.message, stack: error.stack });

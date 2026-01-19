@@ -1,0 +1,108 @@
+WEDDINGZON NOTIFICATION SERVICE IMPLEMENTATION GUIDE
+==================================================
+
+1. OVERVIEW
+-----------
+The Notification Service uses Firebase Cloud Messaging (FCM) to send push notifications to mobile devices.
+It handles:
+- Storing FCM device tokens in the User model.
+- Managing token registration/deregistration.
+- Sending notifications for specific events (Connection Requests, Chat Messages).
+
+2. PREREQUISITES
+----------------
+- Package: `firebase-admin` (Installed)
+- Credentials: `src/config/serviceAccountKey.json` (REQUIRED from Firebase Console)
+
+3. FILE STRUCTURE & CHANGES
+---------------------------
+
+A. Configuration
+   File: `src/config/firebase.js`
+   - Initializes Firebase Admin SDK using the service account key.
+   - Handles missing key gracefully (logs warning).
+
+B. Database Schema
+   File: `src/models/User.js`
+   - Added `fcmTokens: [String]` field.
+   - Default: `[]`.
+   - `select: false` (Hidden by default).
+
+C. Service Layer
+   File: `src/services/notification.service.js`
+   - `sendPushNotification(userIds, payload)`: Core function to send multicast messages.
+   - `notifyUser(userId, payload)`: Helper for single user.
+   - Automatically cleans up invalid/expired tokens from the database.
+
+D. Controller & Routes
+   File: `src/controllers/notification.controller.js`
+   - `registerToken`: Adds a token to the user's `fcmTokens` array.
+   - `unregisterToken`: Removes a token (call on logout).
+
+   File: `src/routes/notification.routes.js`
+   - POST `/register-token` (Protected)
+   - POST `/unregister-token` (Protected)
+
+   File: `src/server.js`
+   - Mounted at: `/api/notifications`
+
+4. INTEGRATION POINTS (TRIGGERS)
+--------------------------------
+
+A. Connection Requests
+   File: `src/controllers/connection.controller.js`
+   - Event: `sendConnectionRequest`
+     - Trigger: Notifies reciever.
+     - Title: "New Connection Request"
+     - Body: "{Name} sent you a request!"
+     - Type: `connection_request`
+   
+   - Event: `acceptConnectionRequest`
+     - Trigger: Notifies requester.
+     - Title: "Request Accepted"
+     - Body: "{Name} accepted your request!"
+     - Type: `request_accepted`
+
+B. Chat Messages
+   File: `src/socket/index.js`
+   - Event: `send_message` (Socket Event)
+     - Trigger: Notifies receiver.
+     - Title: "New Message from {Name}"
+     - Body: Message content (or "Sent a photo")
+     - Type: `chat_message`
+
+5. API USAGE (FRONTEND/FLUTTER)
+-------------------------------
+
+A. Register Token (Call on Login)
+   POST /api/notifications/register-token
+   Headers: { Authorization: "Bearer <jwt>" }
+   Body: { "token": "<fcm_token>" }
+
+B. Unregister Token (Call on Logout)
+   POST /api/notifications/unregister-token
+   Headers: { Authorization: "Bearer <jwt>" }
+   Body: { "token": "<fcm_token>" }
+
+6. DATA PAYLOAD FORMAT
+----------------------
+Notifications include a `data` object for navigation:
+
+- Connection Request:
+  {
+    "type": "connection_request",
+    "requesterId": "<id>"
+  }
+
+- Request Accepted:
+  {
+    "type": "request_accepted",
+    "userId": "<id>"
+  }
+
+- Chat Message:
+  {
+    "type": "chat_message",
+    "conversationId": "<id>",
+    "senderId": "<id>"
+  }

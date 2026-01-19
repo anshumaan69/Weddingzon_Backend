@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema(
             type: Date,
             select: false,
         },
+        fcmTokens: {
+            type: [String],
+            default: [],
+            select: false // Don't expose tokens in general queries
+        },
         is_profile_complete: {
             type: Boolean,
             default: false,

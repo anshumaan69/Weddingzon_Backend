@@ -3,6 +3,7 @@ const PhotoAccessRequest = require('../models/PhotoAccessRequest');
 const DetailsAccessRequest = require('../models/DetailsAccessRequest');
 const User = require('../models/User'); // Kept if needed, though mostly using req.user
 const logger = require('../utils/logger');
+const { notifyUser } = require('../services/notification.service');
 
 // Helper to resolve user by ID or Username
 const resolveUser = async (identifier) => {
@@ -15,6 +16,8 @@ const resolveUser = async (identifier) => {
     if (!user) throw new Error('User not found');
     return user;
 };
+
+const { notifyUser } = require('../services/notification.service');
 
 // @desc    Send Connection Request (Interest)
 // @route   POST /api/connections/send
@@ -54,6 +57,14 @@ exports.sendConnectionRequest = async (req, res) => {
         });
 
         logger.info(`Connection Request Sent: ${req.user.username} -> ${targetUser.username}`);
+
+        // Notify Recipient
+        notifyUser(targetUserId, {
+            title: 'New Connection Request',
+            body: `${req.user.first_name || req.user.username} sent you a request!`,
+            data: { type: 'connection_request', requesterId }
+        });
+
         res.status(201).json({ success: true, data: newRequest });
 
     } catch (error) {
@@ -78,6 +89,13 @@ exports.acceptConnectionRequest = async (req, res) => {
 
         request.status = 'accepted';
         await request.save();
+
+        // Notify Requester
+        notifyUser(request.requester, {
+            title: 'Request Accepted',
+            body: `${req.user.first_name || req.user.username} accepted your request!`,
+            data: { type: 'request_accepted', userId: req.user._id.toString() }
+        });
 
         res.status(200).json({ success: true, message: 'Connection Accepted' });
     } catch (error) {
@@ -138,7 +156,7 @@ exports.getNotifications = async (req, res) => {
             ...acceptedConnections.map(r => ({ ...r, type: 'connection', otherUser: r.recipient })),
             ...grantedPhoto.map(r => ({ ...r, type: 'photo', otherUser: r.targetUser })),
             ...grantedDetails.map(r => ({ ...r, type: 'details', otherUser: r.targetUser }))
-        ];
+        ].filter(n => n.otherUser);
 
         // Sort by update time (newest accepted first)
         formattedNotifications.sort((a, b) => {
@@ -188,7 +206,7 @@ exports.getIncomingRequests = async (req, res) => {
             ...connectionRequests.map(r => ({ ...r, type: 'connection' })),
             ...photoRequests.map(r => ({ ...r, type: 'photo' })),
             ...detailsRequests.map(r => ({ ...r, type: 'details' }))
-        ];
+        ].filter(r => r.requester);
 
         // Sort by newest first
         formattedRequests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
