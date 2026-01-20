@@ -125,6 +125,7 @@ const io = new Server(server, {
 });
 
 initSocket(io);
+app.set('socketio', io);
 
 const PORT = process.env.PORT || 5000;
 

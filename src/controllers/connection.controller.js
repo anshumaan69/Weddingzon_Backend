@@ -58,12 +58,21 @@ exports.sendConnectionRequest = async (req, res) => {
 
         logger.info(`Connection Request Sent: ${req.user.username} -> ${targetUser.username}`);
 
-        // Notify Recipient
+        // Notify Recipient (Push)
         notifyUser(targetUserId, {
             title: 'New Connection Request',
             body: `${req.user.first_name || req.user.username} sent you a request!`,
             data: { type: 'connection_request', requesterId }
         });
+
+        // Realtime Socket Emission
+        const io = req.app.get('socketio');
+        if (io) {
+            const populatedRequest = await ConnectionRequest.findById(newRequest._id)
+                .populate('requester', 'username first_name last_name profilePhoto occupation city state country age')
+                .lean();
+            io.to(targetUserId).emit('new_request', { ...populatedRequest, type: 'connection' });
+        }
 
         res.status(201).json({ success: true, data: newRequest });
 
@@ -90,12 +99,25 @@ exports.acceptConnectionRequest = async (req, res) => {
         request.status = 'accepted';
         await request.save();
 
-        // Notify Requester
+        // Notify Requester (Push)
         notifyUser(request.requester, {
             title: 'Request Accepted',
             body: `${req.user.first_name || req.user.username} accepted your request!`,
             data: { type: 'request_accepted', userId: req.user._id.toString() }
         });
+
+        // Realtime Socket Emission (Notification)
+        const io = req.app.get('socketio');
+        if (io) {
+            // Emitting to the requester. Structure needs to match getNotifications response.
+            // For the requester, 'otherUser' is the one who accepted (req.user).
+            io.to(request.requester.toString()).emit('notification', {
+                ...request.toObject(),
+                type: 'connection',
+                otherUser: req.user, // The current user (recipient) is the 'otherUser' for the requester
+                updatedAt: new Date()
+            });
+        }
 
         res.status(200).json({ success: true, message: 'Connection Accepted' });
     } catch (error) {
@@ -165,7 +187,10 @@ exports.getNotifications = async (req, res) => {
             return dateB - dateA;
         });
 
-        res.status(200).json({ success: true, data: formattedNotifications });
+        // Limit to 10
+        const limitedNotifications = formattedNotifications.slice(0, 10);
+
+        res.status(200).json({ success: true, data: limitedNotifications });
     } catch (error) {
         logger.error('Get Notifications Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
@@ -255,6 +280,16 @@ exports.requestDetailsAccess = async (req, res) => {
         });
 
         logger.info(`Details Access Requested: ${req.user.username} -> ${targetUser.username}`);
+
+        // Realtime Socket Emission
+        const io = req.app.get('socketio');
+        if (io) {
+            const populatedRequest = await DetailsAccessRequest.findById(newRequest._id)
+                .populate('requester', 'username first_name last_name profilePhoto occupation city state country age')
+                .lean();
+            io.to(targetUserId).emit('new_request', { ...populatedRequest, type: 'details' });
+        }
+
         res.status(201).json({ success: true, message: 'Request sent', data: newRequest });
     } catch (error) {
         logger.error('Request Details Error', { error: error.message });
@@ -284,6 +319,20 @@ exports.respondToPhotoRequest = async (req, res) => {
         }
 
         await request.save();
+
+        // Realtime Socket Notification if Granted
+        if (action === 'grant') {
+            const io = req.app.get('socketio');
+            if (io) {
+                io.to(request.requester.toString()).emit('notification', {
+                    ...request.toObject(),
+                    type: 'photo',
+                    otherUser: req.user,
+                    updatedAt: new Date()
+                });
+            }
+        }
+
         res.status(200).json({ success: true, message: `Photo access ${action}ed` });
     } catch (error) {
         logger.error('Respond Photo Request Error', { error: error.message });
@@ -313,6 +362,20 @@ exports.respondToDetailsRequest = async (req, res) => {
         }
 
         await request.save();
+
+        // Realtime Socket Notification if Granted
+        if (action === 'grant') {
+            const io = req.app.get('socketio');
+            if (io) {
+                io.to(request.requester.toString()).emit('notification', {
+                    ...request.toObject(),
+                    type: 'details',
+                    otherUser: req.user,
+                    updatedAt: new Date()
+                });
+            }
+        }
+
         res.status(200).json({ success: true, message: `Details access ${action}ed` });
     } catch (error) {
         logger.error('Respond Details Request Error', { error: error.message });
@@ -403,6 +466,16 @@ exports.requestPhotoAccess = async (req, res) => {
         });
 
         logger.info(`Photo Access Requested: ${req.user.username} -> ${targetUser.username}`);
+
+        // Realtime Socket Emission
+        const io = req.app.get('socketio');
+        if (io) {
+            const populatedRequest = await PhotoAccessRequest.findById(newRequest._id)
+                .populate('requester', 'username first_name last_name profilePhoto occupation city state country age')
+                .lean();
+            io.to(targetUserId).emit('new_request', { ...populatedRequest, type: 'photo' });
+        }
+
         res.status(201).json({ success: true, message: 'Request sent successfully', data: newRequest });
 
     } catch (error) {
