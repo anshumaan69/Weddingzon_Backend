@@ -407,6 +407,38 @@ Error (4xx/5xx):
    }
 
 
+9. RECORD PROFILE VIEW
+   POST /users/view/:userId
+   Desc: Record a view on a user's profile.
+   
+   Response (200 OK):
+   {
+     "success": true,
+     "message": "View recorded"
+   }
+   
+   Note: Limits to 1 view per pair per day.
+
+10. GET PROFILE VIEWERS
+    GET /users/viewers
+    Desc: Get list of users who viewed your profile (Max 10).
+    
+    Response (200 OK):
+    {
+      "success": true,
+      "data": [
+        {
+          "viewer": {
+            "_id": "65b...",
+            "username": "visiting_user",
+            "profilePhoto": "https://... (Signed URL)"
+          },
+          "viewedAt": "2024-01-20T..."
+        }
+      ]
+    }
+
+
 ================================================================================
                                   CONNECTIONS
 ================================================================================
@@ -663,4 +695,9 @@ SOCKET.IO EVENTS (Real-time)
   }
 - Event: `typing` / `stop_typing`
   Data: { receiverId: "..." }
+- Event: `profile_view`
+  Data: {
+    viewer: { _id, username, first_name, ... },
+    viewedAt: "..."
+  }
 

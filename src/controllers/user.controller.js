@@ -6,7 +6,9 @@ const ConnectionRequest = require('../models/ConnectionRequest');
 // const cloudinary = require('../config/cloudinary'); // Deprecated
 const { getPreSignedUrl, uploadToS3 } = require('../utils/s3'); // Centralized S3 Utils
 const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const { s3Client } = require('../config/s3'); // Needed for raw commands (delete)
+const { s3Client } = require('../config/s3');
+const { notifyUser } = require('../services/notification.service');
+
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
@@ -852,6 +854,32 @@ exports.recordProfileView = async (req, res) => {
                 _id: { $nin: keepIds }
             });
         }
+
+        // Real-time Notification
+        const io = req.app.get('io');
+        if (io) {
+            io.to(profileOwnerId).emit('profile_view', {
+                viewer: {
+                    _id: req.user._id,
+                    username: req.user.username,
+                    first_name: req.user.first_name,
+                    last_name: req.user.last_name,
+                    profilePhoto: req.user.profilePhoto // Note: This might be unsigned URL, but valid for notification thumb
+                },
+                viewedAt: new Date()
+            });
+        }
+
+        // Push Notification (Fire & Forget)
+        notifyUser(profileOwnerId, {
+            title: 'New Profile View',
+            body: `${req.user.first_name || req.user.username} viewed your profile`,
+            data: {
+                type: 'profile_view',
+                viewerId: req.user._id.toString(), // For routing
+                click_action: 'FLUTTER_NOTIFICATION_CLICK'
+            }
+        });
 
         res.status(200).json({ success: true, message: 'View recorded' });
     } catch (error) {
