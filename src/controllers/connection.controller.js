@@ -398,8 +398,8 @@ exports.getConnections = async (req, res) => {
                 { recipient: myId, status: 'accepted' }
             ]
         })
-            .populate('requester', 'username first_name last_name profilePhoto')
-            .populate('recipient', 'username first_name last_name profilePhoto');
+            .populate('requester', 'username first_name last_name profilePhoto occupation city state country age')
+            .populate('recipient', 'username first_name last_name profilePhoto occupation city state country age');
 
         // Format data to return just the "other" user
         const formatted = connections.map(conn => {
@@ -407,8 +407,15 @@ exports.getConnections = async (req, res) => {
             return {
                 _id: otherUser._id,
                 username: otherUser.username,
+                first_name: otherUser.first_name,
+                last_name: otherUser.last_name,
                 displayName: `${otherUser.first_name || ''} ${otherUser.last_name || ''}`.trim() || otherUser.username,
-                profilePhoto: otherUser.profilePhoto
+                profilePhoto: otherUser.profilePhoto,
+                occupation: otherUser.occupation,
+                age: otherUser.age,
+                city: otherUser.city,
+                state: otherUser.state,
+                country: otherUser.country
             };
         });
 
