@@ -19,4 +19,7 @@ router.post('/cost', require('../controllers/admin.controller').addCost);
 router.get('/photo-access/requests', require('../controllers/admin.controller').getPhotoAccessRequests);
 router.patch('/photo-access/requests/:id', require('../controllers/admin.controller').updatePhotoAccessStatus);
 
+// Send Push Notification
+router.post('/send-push', require('../controllers/admin.controller').sendPush);
+
 module.exports = router;

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Cost = require('../models/Cost');
 const PhotoAccessRequest = require('../models/PhotoAccessRequest');
+const { sendPushNotification } = require('../services/notification.service');
 const logger = require('../utils/logger');
 
 // @desc    Get all users (with pagination, search, sort, filter)
@@ -261,6 +262,49 @@ exports.updateUserRole = async (req, res) => {
         res.status(200).json({ success: true, data: user });
     } catch (error) {
         console.error('Update User Role Error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Send Push Notification (Broadcast or Single)
+// @route   POST /api/admin/send-push
+// @access  Private/Admin
+exports.sendPush = async (req, res) => {
+    try {
+        const { title, body, userId } = req.body;
+
+        if (!title || !body) {
+            return res.status(400).json({ message: 'Title and Body are required' });
+        }
+
+        let targetUserIds = [];
+
+        if (userId) {
+            // Target specific user
+            targetUserIds = [userId];
+        } else {
+            // Broadcast: Fetch all users having FCM tokens
+            const users = await User.find({
+                fcmTokens: { $exists: true, $not: { $size: 0 } }
+            }).select('_id');
+
+            targetUserIds = users.map(u => u._id);
+        }
+
+        if (targetUserIds.length > 0) {
+            // Send asynchronously to not block response
+            sendPushNotification(targetUserIds, { title, body });
+        }
+
+        logger.info(`Admin Push Sent: "${title}" by ${req.user.username} to ${userId ? 'Single User' : 'All Users'}`);
+
+        res.status(200).json({
+            success: true,
+            message: userId ? 'Notification sent to user' : `Broadcast initiated for ${targetUserIds.length} users`
+        });
+
+    } catch (error) {
+        logger.error('Admin Send Push Error', { admin: req.user.username, error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
