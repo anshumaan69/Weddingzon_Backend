@@ -59,7 +59,11 @@ app.use((req, res, next) => {
 
 // CORS Configuration
 // CORS Configuration
-const allowedOrigins = [process.env.CLIENT_URL || 'http://localhost:3000'];
+const allowedOrigins = [
+  process.env.CLIENT_URL || 'http://localhost:3000',
+  process.env.ADMIN_URL, // Add Admin URL
+  'http://localhost:3001' // Add Local Admin Dev Port
+].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
