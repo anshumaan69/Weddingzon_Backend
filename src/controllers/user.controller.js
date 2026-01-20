@@ -395,7 +395,7 @@ exports.uploadPhotos = async (req, res) => {
                 const blurredKey = `${folderPrefix}/${user._id}/${fileId}_blur.webp`;
 
                 // 1. Process Original (Watermarked)
-                const originalBuffer = await sharp(file.buffer)
+                const originalBuffer = await sharp(file.buffer, { limitInputPixels: false })
                     .resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
                     .composite([{
                         input: Buffer.from(`
@@ -412,7 +412,7 @@ exports.uploadPhotos = async (req, res) => {
                 const originalUrl = await uploadLocal(originalBuffer, originalKey);
 
                 // 2. Process Blurred
-                const blurredBuffer = await sharp(file.buffer)
+                const blurredBuffer = await sharp(file.buffer, { limitInputPixels: false })
                     .resize({ width: 400 })
                     .blur(20)
                     .webp({ quality: 20 })
