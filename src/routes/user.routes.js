@@ -22,6 +22,10 @@ router.post('/upload-photos', protect, upload.array('photos', 10), uploadPhotos)
 // The onboarding flow uses `registerDetails`.
 // `upload-photos` seems to be a separate route.
 // Let's block /feed and profile viewing for now.
+// Profile Views
+router.post('/view/:userId', protect, require('../controllers/user.controller').recordProfileView);
+router.get('/viewers', protect, require('../controllers/user.controller').getProfileViewers);
+
 router.get('/:username', protect, ensureProfileComplete, getUserProfile);
 router.delete('/photos/:photoId', require('../controllers/user.controller').deletePhoto);
 router.patch('/photos/:photoId/set-profile', require('../controllers/user.controller').setProfilePhoto);

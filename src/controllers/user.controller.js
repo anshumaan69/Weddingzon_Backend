@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const ProfileView = require('../models/ProfileView');
 const mongoose = require('mongoose');
 const PhotoAccessRequest = require('../models/PhotoAccessRequest');
 const ConnectionRequest = require('../models/ConnectionRequest');
@@ -799,11 +800,106 @@ exports.getNearbyUsers = async (req, res) => {
             return user;
         }));
 
-        res.status(200).json({ count: sanitizedUsers.length, users: sanitizedUsers });
+        res.status(200).json({ success: true, data: sanitizedUsers });
+
     } catch (error) {
         logger.error('Get Nearby Users Error', { error: error.message });
-        res.status(500).json({ message: 'Failed to fetch nearby users' });
+        res.status(500).json({ message: 'Server Error' });
     }
 };
+
+// @desc    Record Profile View
+// @route   POST /api/users/view/:userId
+// @access  Private
+exports.recordProfileView = async (req, res) => {
+    try {
+        const viewerId = req.user._id;
+        const profileOwnerId = req.params.userId;
+
+        if (viewerId.toString() === profileOwnerId.toString()) {
+            return res.status(200).json({ message: 'Self view ignored' });
+        }
+
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        // Check if viewed today
+        const existingView = await ProfileView.findOne({
+            viewer: viewerId,
+            profileOwner: profileOwnerId,
+            viewedAt: { $gte: startOfDay }
+        });
+
+        if (existingView) {
+            return res.status(200).json({ message: 'Already viewed today' });
+        }
+
+        await ProfileView.create({
+            viewer: viewerId,
+            profileOwner: profileOwnerId
+        });
+
+        // Enforce limit: Keep only last 10 views
+        const views = await ProfileView.find({ profileOwner: profileOwnerId })
+            .sort({ viewedAt: -1 })
+            .limit(10)
+            .select('_id');
+
+        if (views.length === 10) {
+            const keepIds = views.map(v => v._id);
+            await ProfileView.deleteMany({
+                profileOwner: profileOwnerId,
+                _id: { $nin: keepIds }
+            });
+        }
+
+        res.status(200).json({ success: true, message: 'View recorded' });
+    } catch (error) {
+        logger.error('Record View Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get Profile Viewers
+// @route   GET /api/users/viewers
+// @access  Private
+exports.getProfileViewers = async (req, res) => {
+    try {
+        const myId = req.user._id;
+        const { page = 1, limit = 20 } = req.query;
+
+        const views = await ProfileView.find({ profileOwner: myId })
+            .sort({ viewedAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('viewer', 'username first_name last_name profilePhoto photos avatar role')
+            .lean();
+
+        // Sign Profile Photos
+        const processedViews = await Promise.all(views.map(async (view) => {
+            if (view.viewer) {
+                // S3 Signing Logic
+                if (view.viewer.photos && view.viewer.photos.length > 0) {
+                    const profilePhotoObj = view.viewer.photos.find(p => p.isProfile) || view.viewer.photos[0];
+                    if (profilePhotoObj && profilePhotoObj.key) {
+                        const signed = await getPreSignedUrl(profilePhotoObj.key);
+                        if (signed) {
+                            view.viewer.profilePhoto = signed;
+                        }
+                    }
+                }
+            }
+            return view;
+        }));
+
+        res.status(200).json({ success: true, data: processedViews });
+
+    } catch (error) {
+        logger.error('Get Viewers Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+
 
 
