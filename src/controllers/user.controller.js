@@ -819,6 +819,7 @@ exports.recordProfileView = async (req, res) => {
         const profileOwnerId = req.params.userId;
 
         if (viewerId.toString() === profileOwnerId.toString()) {
+            console.log(`[View Debug] Self view ignored: ${viewerId}`);
             return res.status(200).json({ message: 'Self view ignored' });
         }
 
@@ -833,13 +834,15 @@ exports.recordProfileView = async (req, res) => {
         });
 
         if (existingView) {
+            console.log(`[View Debug] Already viewed today: ${viewerId} -> ${profileOwnerId}`);
             return res.status(200).json({ message: 'Already viewed today' });
         }
 
-        await ProfileView.create({
+        const newView = await ProfileView.create({
             viewer: viewerId,
             profileOwner: profileOwnerId
         });
+        console.log(`[View Debug] NEW VIEW STORED: ${newView._id}`);
 
         // Enforce limit: Keep only last 10 views
         const views = await ProfileView.find({ profileOwner: profileOwnerId })

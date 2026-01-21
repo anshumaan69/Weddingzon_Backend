@@ -3,6 +3,7 @@ const PhotoAccessRequest = require('../models/PhotoAccessRequest');
 const DetailsAccessRequest = require('../models/DetailsAccessRequest');
 const User = require('../models/User'); // Kept if needed, though mostly using req.user
 const logger = require('../utils/logger');
+const { getPreSignedUrl } = require('../utils/s3');
 const { notifyUser } = require('../services/notification.service');
 
 // Helper to resolve user by ID or Username
@@ -162,13 +163,13 @@ exports.getNotifications = async (req, res) => {
 
         const [acceptedConnections, grantedPhoto, grantedDetails] = await Promise.all([
             ConnectionRequest.find({ requester: myId, status: 'accepted' })
-                .populate('recipient', 'username first_name last_name profilePhoto occupation city state country age')
+                .populate('recipient', 'username first_name last_name profilePhoto photos occupation city state country age')
                 .lean(),
             PhotoAccessRequest.find({ requester: myId, status: 'granted' })
-                .populate('targetUser', 'username first_name last_name profilePhoto occupation city state country age')
+                .populate('targetUser', 'username first_name last_name profilePhoto photos occupation city state country age')
                 .lean(),
             DetailsAccessRequest.find({ requester: myId, status: 'granted' })
-                .populate('targetUser', 'username first_name last_name profilePhoto occupation city state country age')
+                .populate('targetUser', 'username first_name last_name profilePhoto photos occupation city state country age')
                 .lean()
         ]);
 
@@ -179,6 +180,20 @@ exports.getNotifications = async (req, res) => {
             ...grantedPhoto.map(r => ({ ...r, type: 'photo', otherUser: r.targetUser })),
             ...grantedDetails.map(r => ({ ...r, type: 'details', otherUser: r.targetUser }))
         ].filter(n => n.otherUser);
+
+        // Sign Profile Photos
+        await Promise.all(formattedNotifications.map(async (n) => {
+            const user = n.otherUser;
+            if (user && user.photos && user.photos.length > 0) {
+                const profilePic = user.photos.find(p => p.isProfile) || user.photos[0];
+                if (profilePic && profilePic.key) {
+                    const signed = await getPreSignedUrl(profilePic.key);
+                    if (signed) user.profilePhoto = signed;
+                }
+            }
+            // Remove photos array from response to reduce payload size
+            if (user) delete user.photos;
+        }));
 
         // Sort by update time (newest accepted first)
         formattedNotifications.sort((a, b) => {
@@ -207,13 +222,13 @@ exports.getIncomingRequests = async (req, res) => {
 
         const [connectionRequests, photoRequests, detailsRequests] = await Promise.all([
             ConnectionRequest.find({ recipient: myId, status: 'pending' })
-                .populate('requester', 'username first_name last_name profilePhoto occupation city state country age')
+                .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age')
                 .lean(),
             PhotoAccessRequest.find({ targetUser: myId, status: 'pending' })
-                .populate('requester', 'username first_name last_name profilePhoto occupation city state country age')
+                .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age')
                 .lean(),
             DetailsAccessRequest.find({ targetUser: myId, status: 'pending' })
-                .populate('requester', 'username first_name last_name profilePhoto occupation city state country age')
+                .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age')
                 .lean()
         ]);
 
@@ -232,6 +247,19 @@ exports.getIncomingRequests = async (req, res) => {
             ...photoRequests.map(r => ({ ...r, type: 'photo' })),
             ...detailsRequests.map(r => ({ ...r, type: 'details' }))
         ].filter(r => r.requester);
+
+        // Sign Profile Photos
+        await Promise.all(formattedRequests.map(async (n) => {
+            const user = n.requester;
+            if (user && user.photos && user.photos.length > 0) {
+                const profilePic = user.photos.find(p => p.isProfile) || user.photos[0];
+                if (profilePic && profilePic.key) {
+                    const signed = await getPreSignedUrl(profilePic.key);
+                    if (signed) user.profilePhoto = signed;
+                }
+            }
+            if (user) delete user.photos;
+        }));
 
         // Sort by newest first
         formattedRequests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -398,12 +426,30 @@ exports.getConnections = async (req, res) => {
                 { recipient: myId, status: 'accepted' }
             ]
         })
-            .populate('requester', 'username first_name last_name profilePhoto occupation city state country age')
-            .populate('recipient', 'username first_name last_name profilePhoto occupation city state country age');
+            .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age')
+            .populate('recipient', 'username first_name last_name profilePhoto photos occupation city state country age')
+            .lean(); // Use lean for better performance and modifiability
 
         // Format data to return just the "other" user
-        const formatted = connections.map(conn => {
+        const formatted = (await Promise.all(connections.map(async (conn) => {
+            // Safety Check: If either user is deleted/missing, skip this connection
+            if (!conn.requester || !conn.recipient) return null;
+
             const otherUser = conn.requester._id.toString() === myId ? conn.recipient : conn.requester;
+
+            // Sign Profile Photo
+            if (otherUser && otherUser.photos && otherUser.photos.length > 0) {
+                const profilePic = otherUser.photos.find(p => p.isProfile) || otherUser.photos[0];
+                if (profilePic && profilePic.key) {
+                    try {
+                        const signed = await getPreSignedUrl(profilePic.key);
+                        if (signed) otherUser.profilePhoto = signed;
+                    } catch (e) {
+                        // ignore signing error
+                    }
+                }
+            }
+
             return {
                 _id: otherUser._id,
                 username: otherUser.username,
@@ -417,7 +463,7 @@ exports.getConnections = async (req, res) => {
                 state: otherUser.state,
                 country: otherUser.country
             };
-        });
+        }))).filter(Boolean);
 
         res.status(200).json({ success: true, data: formatted });
 

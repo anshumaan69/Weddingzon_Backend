@@ -20,18 +20,27 @@ module.exports = (io) => {
             console.log('Socket Handshake Attempt:', socket.id);
             const token = socket.handshake.auth.token;
             if (!token) {
-                console.log('Socket Auth Failed: No Token');
+                console.log('Socket Auth Failed: No Token Provided');
                 return next(new Error('Authentication error'));
             }
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const user = await User.findById(decoded.id).select('-password').lean();
-            if (!user) return next(new Error('User not found'));
+            if (!user) {
+                console.log('Socket Auth Failed: User Not Found for ID', decoded.id);
+                return next(new Error('User not found'));
+            }
 
             socket.user = user;
             next();
         } catch (error) {
-            console.error('Socket Auth Middleware Error:', error);
+            console.error('Socket Auth Middleware Error:', error.message);
+            // Distinguish between expired/invalid token and other errors
+            if (error.name === 'TokenExpiredError') {
+                console.log('Socket Auth: Token Expired');
+            } else if (error.name === 'JsonWebTokenError') {
+                console.log('Socket Auth: Invalid Token');
+            }
             next(new Error('Authentication error'));
         }
     });
