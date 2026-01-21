@@ -374,59 +374,36 @@ exports.uploadPhotos = async (req, res) => {
         const successUploads = [];
         const failedUploads = [];
 
-        // Helper to upload buffer to S3 (Local to this function)
-        const uploadLocal = async (buffer, key) => {
-            const uploadStart = performance.now();
-            try {
-                // Need PutObjectCommand
-                const { PutObjectCommand } = require('@aws-sdk/client-s3');
-                const command = new PutObjectCommand({
-                    Bucket: process.env.AWS_BUCKET_NAME,
-                    Key: key,
-                    Body: buffer,
-                    ContentType: 'image/webp',
-                });
-                await s3Client.send(command);
-                const duration = (performance.now() - uploadStart).toFixed(2);
-                logger.debug(`S3 Upload Success (${duration}ms): ${key}`);
-                return `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${key}`;
-            } catch (err) {
-                console.error('S3 Upload Error Helper:', err);
-                throw err;
-            }
-        };
-
+        const path = require('path');
+        // ... inside uploadPhotos ...
         const processFile = async (file, index) => {
             const fileStart = performance.now();
             try {
                 const fileId = uuidv4();
-                const folderPrefix = 'weedingzon/users'; // Typo preserved for consistency :)
-                const originalKey = `${folderPrefix}/${user._id}/${fileId}_orig.webp`;
+                const folderPrefix = 'weedingzon/users';
+                // Get extension from original file or mimetype
+                const ext = path.extname(file.originalname) || '.jpg';
+                const originalKey = `${folderPrefix}/${user._id}/${fileId}_orig${ext}`;
                 const blurredKey = `${folderPrefix}/${user._id}/${fileId}_blur.webp`;
 
                 logger.debug(`Processing File ${index + 1}/${req.files.length}: ${file.originalname} Size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
 
-                // 1. Process Original (Simple Compression Only)
-                // Removed Watermark & Heavy Processing as requested
-                const originalBuffer = await sharp(file.buffer, { limitInputPixels: false })
-                    .rotate()
-                    .resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
-                    .webp({ quality: 80 })
-                    .toBuffer();
+                // 1. Upload Original RAW (No Processing/Compression)
+                const originalBuffer = file.buffer;
+                const originalUrl = await uploadLocal(originalBuffer, originalKey, file.mimetype);
 
-                const originalUrl = await uploadLocal(originalBuffer, originalKey);
-
-                // 2. Process Blurred (Fast Thumbnail for component compatibility)
-                const blurredBuffer = await sharp(originalBuffer)
-                    .resize({ width: 20 }) // Tiny size for speed
+                // 2. Process Blurred (Thumbnail)
+                const blurredBuffer = await sharp(file.buffer)
+                    .rotate() // Auto-rotate for the thumb
+                    .resize({ width: 20 })
                     .blur(5)
-                    .webp({ quality: 20 }) // Low quality
+                    .webp({ quality: 20 })
                     .toBuffer();
 
-                const blurredUrl = await uploadLocal(blurredBuffer, blurredKey);
+                const blurredUrl = await uploadLocal(blurredBuffer, blurredKey, 'image/webp');
 
                 const fileDuration = (performance.now() - fileStart).toFixed(2);
-                logger.info(`File Processed & Uploaded (Simplified) (${fileDuration}ms): ${file.originalname}`);
+                logger.info(`File Uploaded (Raw) (${fileDuration}ms): ${file.originalname}`);
 
                 return {
                     success: true,
@@ -446,6 +423,29 @@ exports.uploadPhotos = async (req, res) => {
                 };
             }
         };
+
+        // ... inside uploadLocal helper ...
+        const uploadLocal = async (buffer, key, contentType = 'image/webp') => { // Add contentType param
+            const uploadStart = performance.now();
+            try {
+                const { PutObjectCommand } = require('@aws-sdk/client-s3');
+                const command = new PutObjectCommand({
+                    Bucket: process.env.AWS_BUCKET_NAME,
+                    Key: key,
+                    Body: buffer,
+                    ContentType: contentType, // Use dynamic content type
+                });
+                await s3Client.send(command);
+                const duration = (performance.now() - uploadStart).toFixed(2);
+                logger.debug(`S3 Upload Success (${duration}ms): ${key}`);
+                return `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+            } catch (err) {
+                console.error('S3 Upload Error Helper:', err);
+                throw err;
+            }
+        };
+
+
 
         // Sequential processing to avoid OOM/CPU choke on parallel large image operations
         const results = [];
@@ -560,12 +560,9 @@ exports.getUserProfile = async (req, res) => {
                 // PRIVACY LOGIC: 
                 // If NO Access AND NOT Profile Photo -> Use Blurred Key
                 if (!accessGranted && !photo.isProfile) {
-                    // create new key name by replacing _orig with _blur
-                    // Assumption: keys are stored as ".../uuid_orig.webp"
-                    // Fallback: If naming convention fails, we just don't sign or show placeholder? 
-                    // For now, let's try strict replacement.
-                    if (keyToSign && keyToSign.includes('_orig.webp')) {
-                        keyToSign = keyToSign.replace('_orig.webp', '_blur.webp');
+                    if (keyToSign && keyToSign.includes('_orig')) {
+                        // Regex replacement to handle any extension
+                        keyToSign = keyToSign.replace(/_orig\.[^.]+$/, '_blur.webp');
                     }
                 }
 
@@ -615,8 +612,8 @@ exports.deletePhoto = async (req, res) => {
             // Delete Blurred (Infer key from original if strictly named, or just skip if not stored. 
             // Our logic uses {key}_orig.webp vs {key}_blur.webp, but we stored 'key' as the whole path.
             // Let's try to derive it to ensure clean up.
-            if (photo.key.includes('_orig.webp')) {
-                const blurKey = photo.key.replace('_orig.webp', '_blur.webp');
+            if (photo.key.includes('_orig')) {
+                const blurKey = photo.key.replace(/_orig\.[^.]+$/, '_blur.webp');
                 try {
                     await s3Client.send(new DeleteObjectCommand({ Bucket: process.env.AWS_BUCKET_NAME, Key: blurKey }));
                 } catch (e) {
