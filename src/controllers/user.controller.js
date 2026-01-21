@@ -406,39 +406,27 @@ exports.uploadPhotos = async (req, res) => {
 
                 logger.debug(`Processing File ${index + 1}/${req.files.length}: ${file.originalname} Size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
 
-                // 1. Process Original (Watermarked)
-                // Added .rotate() to fix orientation for phone uploads
+                // 1. Process Original (Simple Compression Only)
+                // Removed Watermark & Heavy Processing as requested
                 const originalBuffer = await sharp(file.buffer, { limitInputPixels: false })
                     .rotate()
                     .resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
-                    .composite([{
-                        input: Buffer.from(`
-                        <svg width="500" height="100" viewBox="0 0 500 100">
-                            <text x="95%" y="90%" font-family="sans-serif" font-weight="bold" font-size="48" fill="black" fill-opacity="0.5" text-anchor="end">WeddingZon</text>
-                            <text x="94.5%" y="89%" font-family="sans-serif" font-weight="bold" font-size="48" fill="white" fill-opacity="0.8" text-anchor="end">WeddingZon</text>
-                        </svg>
-                     `),
-                        gravity: 'southeast'
-                    }])
-                    .webp({ quality: 75 }) // Reduced quality slightly for speed
+                    .webp({ quality: 80 })
                     .toBuffer();
 
                 const originalUrl = await uploadLocal(originalBuffer, originalKey);
 
-                // 2. Process Blurred (Optimized: Resize small first)
-                // Use originalBuffer as input to avoid re-decoding big image if possible? 
-                // Actually safer to use original source for clean resize, or originalBuffer is fine since it's already webp 1920.
-                // Using originalBuffer is faster as it's smaller than raw source.
+                // 2. Process Blurred (Fast Thumbnail for component compatibility)
                 const blurredBuffer = await sharp(originalBuffer)
-                    .resize({ width: 400 })
-                    .blur(20)
-                    .webp({ quality: 20 })
+                    .resize({ width: 20 }) // Tiny size for speed
+                    .blur(5)
+                    .webp({ quality: 20 }) // Low quality
                     .toBuffer();
 
                 const blurredUrl = await uploadLocal(blurredBuffer, blurredKey);
 
                 const fileDuration = (performance.now() - fileStart).toFixed(2);
-                logger.info(`File Processed (${fileDuration}ms): ${file.originalname}`);
+                logger.info(`File Processed & Uploaded (Simplified) (${fileDuration}ms): ${file.originalname}`);
 
                 return {
                     success: true,
@@ -447,7 +435,6 @@ exports.uploadPhotos = async (req, res) => {
                         blurredUrl: blurredUrl,
                         key: originalKey,
                         isProfile: false,
-                        // We'll set order later based on successful count
                     }
                 };
             } catch (error) {
