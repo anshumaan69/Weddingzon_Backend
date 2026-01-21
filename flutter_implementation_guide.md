@@ -95,11 +95,68 @@ The Connections page should be a separate tab or top-level view, distinct from "
     final uniqueList = rawResponseList.where((u) => seenIds.add(u['_id'])).toList();
     ```
 
----
+## 6. Sequential Image Upload Logic (Robust Queue)
 
-### Summary Checklist for Dev
-- [ ] Add `is_profile_complete: true` to final onboarding save.
-- [ ] Add `POST /api/users/view/:id` on profile open.
-- [ ] Implement Geocoding + `PATCH /api/users/location` for "Get My Location".
-- [ ] Verify `profilePhoto` renders correctly in Notification/Request lists (using new backend logic).
-- [ ] Build dedicated Connections screen using `my-connections` API.
+To prevent `413 Payload Too Large` errors and Network Timeouts when uploading multiple high-res images, you **MUST** implement a frontend queue. Do NOT send 10 images in a single API call if they are large.
+
+**Strategy:**
+1.  **Selection**: User selects multiple images.
+2.  **Validation**: Client-side check (Type: Image, Size: <50MB each).
+3.  **Queueing**: Add Valid images to a local list as "Temporary" objects with `status: 'pending'`.
+4.  **Optimistic UI**: Display the image immediately using a local File Image provider.
+5.  **Sequential Execution**:
+    -   Watch the list. Find the first `pending` item.
+    -   Set status `uploading` (Show Spinner).
+    -   Call `POST /api/users/upload-photos` with **ONE** file in `FormData`.
+    -   **Wait** for response.
+    -   **Success**: Update item with backend URL/ID. Status `success`.
+    -   **Failure**: Update item with Error Message. Status `error`. Do NOT block the next item.
+    -   Repeat for next `pending` item.
+
+**Dart/Flutter Pseudocode (Store/Provider Logic):**
+
+```dart
+class PhotoUploadStore {
+  ObservableList<PhotoItem> photos = ObservableList();
+
+  void addFiles(List<File> newFiles) {
+    for (var file in newFiles) {
+      if (!isValid(file)) continue;
+      photos.add(PhotoItem(file: file, status: UploadStatus.pending));
+    }
+    _processQueue();
+  }
+
+  Future<void> _processQueue() async {
+    // Find next pending
+    var nextItem = photos.firstWhereOrNull((p) => p.status == UploadStatus.pending);
+    if (nextItem == null) return; // All done
+
+    nextItem.status = UploadStatus.uploading;
+    notifyListeners();
+
+    try {
+      final response = await api.uploadPhoto(nextItem.file); // Single upload
+      if (response.success) {
+        nextItem.updateFromBackend(response.data[0]); 
+        nextItem.status = UploadStatus.success;
+      } else {
+        nextItem.error = response.message;
+        nextItem.status = UploadStatus.error;
+      }
+    } catch (e) {
+      nextItem.error = "Network Error";
+      nextItem.status = UploadStatus.error;
+    }
+    
+    notifyListeners();
+    // Recursively process next
+    _processQueue(); 
+  }
+}
+```
+
+**Why?**
+-   Ensures robustness on slow mobile networks.
+-   Prevents server rejections for total body size.
+-   Gives granular feedback (e.g., "Image 3 failed, others worked").
