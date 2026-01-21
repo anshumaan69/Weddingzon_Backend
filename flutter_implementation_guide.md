@@ -68,6 +68,11 @@ The "Get My Location" button in Onboarding > Location Details should follow this
 The Connections page should be a separate tab or top-level view, distinct from "Matches" or "Search".
 
 -   **Endpoint**: `GET /api/connections/my-connections`
+-   **Architecture**:
+    -   Do **NOT** mix connections with Invites/Notifications.
+    -   Create a separate screen/tab for "My Connections".
+    -   The "Activity" screen should only show "Invites" (`/api/connections/requests`) and "Notifications" (`/api/connections/notifications`).
+    -   Link to this Connections screen from the User Profile ("Connections" button) or a side drawer.
 -   **UI Layout**:
     -   List View of Connected Users.
     -   **Card Details**:
@@ -82,6 +87,13 @@ The Connections page should be a separate tab or top-level view, distinct from "
 -   **Logic**:
     -   This list represents *mutual* acceptance.
     -   Users here have full access to each other's details/photos (unless restricted by specific block logic, though usually connection implies trust).
+    -   **Important**: Implement Client-Side Deduplication to ensure no user appears twice (safety for backend edge cases).
+
+    **Dart Example for Deduplication:**
+    ```dart
+    final seenIds = <String>{};
+    final uniqueList = rawResponseList.where((u) => seenIds.add(u['_id'])).toList();
+    ```
 
 ---
 

@@ -354,7 +354,11 @@ exports.searchUsers = async (req, res) => {
 // @desc    Upload Photos (S3 Twin-Upload)
 // @route   POST /api/users/upload-photos
 // @access  Private
+// @desc    Upload Photos (S3 Twin-Upload)
+// @route   POST /api/users/upload-photos
+// @access  Private
 exports.uploadPhotos = async (req, res) => {
+    const startTotal = performance.now();
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ message: 'No files uploaded' });
@@ -365,11 +369,14 @@ exports.uploadPhotos = async (req, res) => {
             return res.status(400).json({ message: 'Maximum 10 photos allowed' });
         }
 
+        logger.info(`Starting Upload for ${req.user.username}: ${req.files.length} files`);
+
         const successUploads = [];
         const failedUploads = [];
 
         // Helper to upload buffer to S3 (Local to this function)
         const uploadLocal = async (buffer, key) => {
+            const uploadStart = performance.now();
             try {
                 // Need PutObjectCommand
                 const { PutObjectCommand } = require('@aws-sdk/client-s3');
@@ -380,6 +387,8 @@ exports.uploadPhotos = async (req, res) => {
                     ContentType: 'image/webp',
                 });
                 await s3Client.send(command);
+                const duration = (performance.now() - uploadStart).toFixed(2);
+                logger.debug(`S3 Upload Success (${duration}ms): ${key}`);
                 return `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${key}`;
             } catch (err) {
                 console.error('S3 Upload Error Helper:', err);
@@ -387,15 +396,20 @@ exports.uploadPhotos = async (req, res) => {
             }
         };
 
-        const processFile = async (file) => {
+        const processFile = async (file, index) => {
+            const fileStart = performance.now();
             try {
                 const fileId = uuidv4();
-                const folderPrefix = 'weedingzon/users';
+                const folderPrefix = 'weedingzon/users'; // Typo preserved for consistency :)
                 const originalKey = `${folderPrefix}/${user._id}/${fileId}_orig.webp`;
                 const blurredKey = `${folderPrefix}/${user._id}/${fileId}_blur.webp`;
 
+                logger.debug(`Processing File ${index + 1}/${req.files.length}: ${file.originalname} Size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+
                 // 1. Process Original (Watermarked)
+                // Added .rotate() to fix orientation for phone uploads
                 const originalBuffer = await sharp(file.buffer, { limitInputPixels: false })
+                    .rotate()
                     .resize({ width: 1920, height: 1080, fit: 'inside', withoutEnlargement: true })
                     .composite([{
                         input: Buffer.from(`
@@ -406,19 +420,25 @@ exports.uploadPhotos = async (req, res) => {
                      `),
                         gravity: 'southeast'
                     }])
-                    .webp({ quality: 80 })
+                    .webp({ quality: 75 }) // Reduced quality slightly for speed
                     .toBuffer();
 
                 const originalUrl = await uploadLocal(originalBuffer, originalKey);
 
-                // 2. Process Blurred
-                const blurredBuffer = await sharp(file.buffer, { limitInputPixels: false })
+                // 2. Process Blurred (Optimized: Resize small first)
+                // Use originalBuffer as input to avoid re-decoding big image if possible? 
+                // Actually safer to use original source for clean resize, or originalBuffer is fine since it's already webp 1920.
+                // Using originalBuffer is faster as it's smaller than raw source.
+                const blurredBuffer = await sharp(originalBuffer)
                     .resize({ width: 400 })
                     .blur(20)
                     .webp({ quality: 20 })
                     .toBuffer();
 
                 const blurredUrl = await uploadLocal(blurredBuffer, blurredKey);
+
+                const fileDuration = (performance.now() - fileStart).toFixed(2);
+                logger.info(`File Processed (${fileDuration}ms): ${file.originalname}`);
 
                 return {
                     success: true,
@@ -431,6 +451,7 @@ exports.uploadPhotos = async (req, res) => {
                     }
                 };
             } catch (error) {
+                logger.error(`File Processing Failed: ${file.originalname}`, { error: error.message });
                 return {
                     success: false,
                     filename: file.originalname,
@@ -439,8 +460,11 @@ exports.uploadPhotos = async (req, res) => {
             }
         };
 
-        // Parallel processing of all files
-        const results = await Promise.all(req.files.map(file => processFile(file)));
+        // Sequential processing to avoid OOM/CPU choke on parallel large image operations
+        const results = [];
+        for (let i = 0; i < req.files.length; i++) {
+            results.push(await processFile(req.files[i], i));
+        }
 
         results.forEach(result => {
             if (result.success) {
@@ -465,7 +489,8 @@ exports.uploadPhotos = async (req, res) => {
             }
 
             await user.save();
-            logger.info(`S3 Photos Uploaded: ${req.user.username} (${successUploads.length} successful, ${failedUploads.length} failed)`);
+            const totalDuration = (performance.now() - startTotal).toFixed(2);
+            logger.info(`Upload Complete (${totalDuration}ms): ${successUploads.length} success, ${failedUploads.length} failed`);
         } else {
             logger.warn(`S3 Photos Upload Failed: ${req.user.username} (All ${failedUploads.length} failed)`);
         }
@@ -474,8 +499,10 @@ exports.uploadPhotos = async (req, res) => {
         const responsePhotos = await Promise.all(user.photos.map(async (p) => {
             const pObj = p.toObject();
             if (pObj.key) {
-                const signed = await getPreSignedUrl(pObj.key);
-                if (signed) pObj.url = signed;
+                try {
+                    const signed = await getPreSignedUrl(pObj.key);
+                    if (signed) pObj.url = signed;
+                } catch (e) { }
             }
             return pObj;
         }));
