@@ -1,0 +1,336 @@
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/de8b07b9-1063-4130-acf2-99d778cc4ef1_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/de8b07b9-1063-4130-acf2-99d778cc4ef1_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/de8b07b9-1063-4130-acf2-99d778cc4ef1_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/de8b07b9-1063-4130-acf2-99d778cc4ef1_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/b4ed1a1d-9eac-4f49-b900-df8f50a69f34_orig.png" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/b4ed1a1d-9eac-4f49-b900-df8f50a69f34_orig.png" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/b4ed1a1d-9eac-4f49-b900-df8f50a69f34_orig.png" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/b4ed1a1d-9eac-4f49-b900-df8f50a69f34_orig.png" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/cc05ce2e-6a80-48db-a49a-bf4047dce54f_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/cc05ce2e-6a80-48db-a49a-bf4047dce54f_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/cc05ce2e-6a80-48db-a49a-bf4047dce54f_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/cc05ce2e-6a80-48db-a49a-bf4047dce54f_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/791751b5-86c0-4a24-a771-a75d4481c21b_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/791751b5-86c0-4a24-a771-a75d4481c21b_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/791751b5-86c0-4a24-a771-a75d4481c21b_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/791751b5-86c0-4a24-a771-a75d4481c21b_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/d443a8bc-6a99-4e02-a44b-3a3837043238_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/d443a8bc-6a99-4e02-a44b-3a3837043238_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/d443a8bc-6a99-4e02-a44b-3a3837043238_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/d443a8bc-6a99-4e02-a44b-3a3837043238_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/3cb021fc-57c0-4b50-b5cb-0fb9b11a5813_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/3cb021fc-57c0-4b50-b5cb-0fb9b11a5813_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/3cb021fc-57c0-4b50-b5cb-0fb9b11a5813_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/3cb021fc-57c0-4b50-b5cb-0fb9b11a5813_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/0121a3fd-ed7d-432a-8e97-3da396db0e2e_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/0121a3fd-ed7d-432a-8e97-3da396db0e2e_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/0121a3fd-ed7d-432a-8e97-3da396db0e2e_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/0121a3fd-ed7d-432a-8e97-3da396db0e2e_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/5530b4b1-b6fb-4a92-99df-9a5f3ae9c76a_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/5530b4b1-b6fb-4a92-99df-9a5f3ae9c76a_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/5530b4b1-b6fb-4a92-99df-9a5f3ae9c76a_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/5530b4b1-b6fb-4a92-99df-9a5f3ae9c76a_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/33e64f2c-3ef7-4d5f-8c88-a19b5cd6abbf_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/33e64f2c-3ef7-4d5f-8c88-a19b5cd6abbf_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/33e64f2c-3ef7-4d5f-8c88-a19b5cd6abbf_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/33e64f2c-3ef7-4d5f-8c88-a19b5cd6abbf_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/0e36abaa-6efe-42e9-b7db-26e0307becf5_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/0e36abaa-6efe-42e9-b7db-26e0307becf5_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/0e36abaa-6efe-42e9-b7db-26e0307becf5_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/0e36abaa-6efe-42e9-b7db-26e0307becf5_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/f8b95a81-1dc5-436d-ae19-55ef530a08ee_orig.png" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/f8b95a81-1dc5-436d-ae19-55ef530a08ee_orig.png" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/f8b95a81-1dc5-436d-ae19-55ef530a08ee_orig.png" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/f8b95a81-1dc5-436d-ae19-55ef530a08ee_orig.png" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/37d73f39-1584-465a-9f7b-18abfc5a7873_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/37d73f39-1584-465a-9f7b-18abfc5a7873_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/37d73f39-1584-465a-9f7b-18abfc5a7873_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/37d73f39-1584-465a-9f7b-18abfc5a7873_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/630ed892-0802-4653-afff-ae51cfa53be3_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/630ed892-0802-4653-afff-ae51cfa53be3_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/630ed892-0802-4653-afff-ae51cfa53be3_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/630ed892-0802-4653-afff-ae51cfa53be3_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+S3 Upload Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/a070a68e-e6cb-4671-ab11-f25ad4171c27_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/a070a68e-e6cb-4671-ab11-f25ad4171c27_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20
+File Processing Error: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/a070a68e-e6cb-4671-ab11-f25ad4171c27_orig.jpg" because no identity-based policy allows the s3:PutObject action
+AccessDenied: User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: "arn:aws:s3:::hoocai/weddingzon/users/6973004b7c9f5e9c4a33841a/a070a68e-e6cb-4671-ab11-f25ad4171c27_orig.jpg" because no identity-based policy allows the s3:PutObject action
+    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:69:67)
+    at AwsRestXmlProtocol.handleError (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\core\dist-cjs\submodules\protocols\index.js:1795:65)
+    at AwsRestXmlProtocol.deserializeResponse (C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\protocols\index.js:304:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\core\dist-cjs\submodules\schema\index.js:26:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:386:20
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@smithy\middleware-retry\dist-cjs\index.js:254:46
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-flexible-checksums\dist-cjs\index.js:241:24
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:63:28
+    at async C:\Users\anshu\OneDrive\Desktop\WeddingZon\Weddingzon_Backend\node_modules\@aws-sdk\middleware-sdk-s3\dist-cjs\index.js:90:20

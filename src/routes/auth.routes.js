@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { googleAuth, sendOtp, verifyOtp, registerDetails, logout, refreshToken, getMe, checkUsername } = require('../controllers/auth.controller');
+const { googleAuth, sendOtp, verifyOtp, registerDetails, logout, refreshToken, getMe, checkUsername, login } = require('../controllers/auth.controller');
 const { protect } = require('../middlewares/authMiddleware');
 const { csrfProtection } = require('../middlewares/csrfMiddleware');
 
 
 // Public
+router.post('/login', login);
 router.post('/google', googleAuth);
 router.post('/send-otp', sendOtp);
 router.post('/verify-otp', verifyOtp);

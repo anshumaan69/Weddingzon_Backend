@@ -308,3 +308,47 @@ exports.sendPush = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+// @desc    Get Franchise Requests (Pending Approval)
+// @route   GET /api/admin/franchises/requests
+// @access  Private/Admin
+exports.getFranchiseRequests = async (req, res) => {
+    try {
+        const requests = await User.find({
+            role: 'franchise',
+            franchise_status: 'pending_approval'
+        });
+
+        res.status(200).json({ success: true, data: requests });
+    } catch (error) {
+        logger.error('Get Franchise Requests Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Approve/Reject Franchise Request
+// @route   PATCH /api/admin/franchises/:id/approve
+// @access  Private/Admin
+exports.approveFranchise = async (req, res) => {
+    try {
+        const { status } = req.body; // 'active' or 'rejected'
+        if (!['active', 'rejected'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status' });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (!user || user.role !== 'franchise') {
+            return res.status(404).json({ message: 'Franchise user not found' });
+        }
+
+        user.franchise_status = status;
+        await user.save();
+
+        logger.info(`Franchise ${user.username} status updated to ${status}`);
+        res.status(200).json({ success: true, message: `Franchise ${status}` });
+
+    } catch (error) {
+        logger.error('Approve Franchise Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

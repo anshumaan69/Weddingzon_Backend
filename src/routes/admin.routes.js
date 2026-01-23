@@ -22,4 +22,8 @@ router.patch('/photo-access/requests/:id', require('../controllers/admin.control
 // Send Push Notification
 router.post('/send-push', require('../controllers/admin.controller').sendPush);
 
+// Franchise Management
+router.get('/franchises/requests', require('../controllers/admin.controller').getFranchiseRequests);
+router.patch('/franchises/:id/approve', require('../controllers/admin.controller').approveFranchise);
+
 module.exports = router;

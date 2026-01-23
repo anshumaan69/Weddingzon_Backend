@@ -95,6 +95,7 @@ const clearCookies = (req, res) => {
 // --- Controllers ---
 
 exports.googleAuth = async (req, res) => {
+    console.log('[DEBUG] googleAuth Called'); // Verification log
     const { code, redirect_uri, idToken } = req.body;
     try {
         let payload;
@@ -182,8 +183,60 @@ exports.googleAuth = async (req, res) => {
         logger.info(`Google Auth Success: ${email}`);
         res.status(200).json({ success: true, user, accessToken, refreshToken });
     } catch (error) {
-        logger.error('Google Auth Failed', { error: error.message, stack: error.stack });
-        res.status(401).json({ message: 'Authentication failed: ' + error.message });
+        // Fallback logging for Circular Structure errors
+        try {
+            logger.error('Google Auth Failed', { error: error.message, stack: error.stack });
+        } catch (logError) {
+            console.error('[CRITICAL] Logger Failed:', logError);
+            console.error('[CRITICAL] Original Error:', error);
+        }
+
+        if (!res.headersSent) {
+            res.status(401).json({
+                message: 'Authentication failed: ' + (error ? error.message : 'Unknown Error'),
+                debug: process.env.NODE_ENV !== 'production' ? String(error) : undefined
+            });
+        }
+    }
+};
+
+// --- Traditional Login (Username/Password) ---
+exports.login = async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ message: 'Username and password are required' });
+    }
+
+    try {
+        const user = await User.findOne({ username }).select('+password');
+
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const isMatch = await user.matchPassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        // Check Ban/Suspension
+        if (user.status === 'suspended' || user.status === 'banned') {
+            return res.status(403).json({ message: 'Account is suspended or banned' });
+        }
+
+        // Generate Tokens
+        const { accessToken, refreshToken } = generateTokens(user._id);
+        setCookies(req, res, accessToken, refreshToken);
+
+        // Remove password from response
+        user.password = undefined;
+
+        logger.info(`Login Success: ${username}`);
+        res.status(200).json({ success: true, user, accessToken });
+    } catch (error) {
+        logger.error('Login Error', { error: error.message });
+        res.status(500).json({ message: 'Login failed' });
     }
 };
 

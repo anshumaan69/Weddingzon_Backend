@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
     {
@@ -53,6 +54,21 @@ const userSchema = new mongoose.Schema(
             type: String,
             enum: ['super_admin', 'admin'],
             default: null,
+        },
+        franchise_status: {
+            type: String,
+            enum: ['pending_payment', 'pending_approval', 'active', 'rejected', null],
+            default: null,
+        },
+        created_by: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
+        },
+        partner_preferences: {
+            type: Map,
+            of: String, // Simplified for now (e.g., 'minAge': '25', 'maxAge': '30')
+            default: {},
         },
         username: {
             type: String,
@@ -154,7 +170,12 @@ const userSchema = new mongoose.Schema(
             },
         },
 
-        // --- Preferences (Future Proofing) ---
+        // --- Preferences ---
+        partner_preferences: {
+            type: Map,
+            of: String,
+            default: {},
+        },
         property_types: [String],
         land_types: [String],
         land_area: { type: Number },
@@ -184,6 +205,11 @@ const userSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
+        // --- Auth ---
+        password: {
+            type: String,
+            select: false, // Don't return by default
+        },
     },
     {
         timestamps: {
@@ -192,6 +218,20 @@ const userSchema = new mongoose.Schema(
         },
     }
 );
+
+// Encrypt password using bcrypt
+userSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) {
+        next();
+    }
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Match user entered password to hashed password in database
+userSchema.methods.matchPassword = async function (enteredPassword) {
+    return await bcrypt.compare(enteredPassword, this.password);
+};
 
 // Indexes for Performance
 userSchema.index({ status: 1, _id: -1 }); // Critical for Feed Pagination

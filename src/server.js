@@ -97,6 +97,7 @@ app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/api/connections', require('./routes/connection.routes'));
 app.use('/api/chat', require('./routes/chat.routes')); // Enabled Chat Routes
 app.use('/api/notifications', require('./routes/notification.routes'));
+app.use('/api/franchise', require('./routes/franchise.routes'));
 
 // Global Error Handler
 app.use((err, req, res, next) => {

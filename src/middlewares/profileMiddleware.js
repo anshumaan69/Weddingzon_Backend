@@ -1,6 +1,6 @@
 const ensureProfileComplete = (req, res, next) => {
-    // Skip for Admin
-    if (req.user && (req.user.admin_role === 'admin' || req.user.admin_role === 'super_admin')) {
+    // Skip for Admin & Franchise
+    if (req.user && (req.user.admin_role === 'admin' || req.user.admin_role === 'super_admin' || req.user.role === 'franchise')) {
         return next();
     }
 

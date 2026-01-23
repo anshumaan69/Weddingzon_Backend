@@ -22,14 +22,45 @@ const logger = require('../utils/logger');
 exports.getFeed = async (req, res) => {
     const startTotal = performance.now();
     try {
-        const { cursor } = req.query;
+        const { cursor, viewAs } = req.query;
+        console.log('--- FEED DEBUG ---');
+        console.log('Query:', req.query);
+        console.log('User Role:', req.user.role);
+        console.log('User ID:', req.user._id);
+
         const FETCH_SIZE = 15;
         const SHOW_SIZE = 9;
+
+        // Context User (Defaults to logged-in user)
+        let currentUser = req.user;
+
+        // --- FRANCHISE RESTRICTION & LOGIC ---
+        if (req.user.role === 'franchise') {
+            if (!viewAs) {
+                return res.status(403).json({
+                    message: 'Franchise owners cannot view the feed directly. Please select a member to "View As".'
+                });
+            }
+
+            console.log(`Attempting to view as: ${viewAs}`);
+            const member = await User.findOne({ _id: viewAs, created_by: req.user._id }); // Removed .lean() to debug Map issue
+            if (member) {
+                console.log(`[Feed] Franchise ${req.user.username} viewing as ${member.username}`);
+                currentUser = member.toObject({ flattenMaps: true }); // Convert Mongoose Map to POJO
+                // Ensure partner_preferences is Object if lean() was used (it is)
+            } else {
+                console.log('[Feed] View As Member NOT FOUND or Not Authorization');
+                return res.status(403).json({ message: 'Member not found or unauthorized' });
+            }
+        } else {
+            // Normal user logic
+            if (viewAs) console.log('[Feed] Ignoring viewAs param for non-franchise user');
+        }
 
         // Base Query
         const query = {
             status: 'active',
-            _id: { $ne: req.user._id }, // Exclude current user
+            _id: { $ne: currentUser._id }, // Exclude current context user
             is_profile_complete: true, // Show only completed profiles
             $or: [
                 { 'photos.0': { $exists: true } },
@@ -40,6 +71,115 @@ exports.getFeed = async (req, res) => {
         // Cursor Pagination
         if (cursor) {
             query._id = { ...query._id, $lt: cursor };
+        }
+
+        // --- PARTNER PREFERENCES FILTER (Franchise Feature) ---
+        // Debug Log
+        // console.log('DEBUG FEED PREFS:', req.user.partner_preferences);
+
+        // Handle POJO (plain object) from .lean() middleware
+        // Handle POJO (plain object) from .lean() middleware
+        // Use currentUser (which might be the IMPERSONATED member)
+        const prefs = currentUser.partner_preferences;
+        if (prefs && Object.keys(prefs).length > 0) {
+            console.log(`[Feed Filter] Applying preferences for user ${currentUser.username}:`, prefs);
+
+            // 1. Age Filter
+            const minAge = prefs.minAge || prefs['minAge'];
+            const maxAge = prefs.maxAge || prefs['maxAge'];
+            if (minAge || maxAge) {
+                const today = new Date();
+                const dobQuery = {};
+                if (maxAge) {
+                    const date = new Date(today.getFullYear() - parseInt(maxAge) - 1, today.getMonth(), today.getDate());
+                    dobQuery.$gte = date;
+                }
+                if (minAge) {
+                    const date = new Date(today.getFullYear() - parseInt(minAge), today.getMonth(), today.getDate());
+                    dobQuery.$lte = date;
+                }
+                if (Object.keys(dobQuery).length > 0) query.dob = dobQuery;
+            }
+
+            // 2. Religion
+            const religion = prefs.religion || prefs['religion'];
+            if (religion && religion !== 'Any') {
+                query.religion = religion;
+            }
+
+            // 3. Community
+            const community = prefs.community || prefs['community'];
+            if (community) {
+                query.community = { $regex: community, $options: 'i' };
+            }
+
+            // 4. Location
+            const location = prefs.location || prefs['location'];
+            if (location) {
+                const locRegex = { $regex: location, $options: 'i' };
+                const locationOr = [
+                    { city: locRegex },
+                    { state: locRegex },
+                    { country: locRegex }
+                ];
+
+                // Wrap existing $or (photos) and new location $or into an $and
+                if (query.$or) {
+                    query.$and = [
+                        { $or: query.$or }, // Existing Photo check
+                        { $or: locationOr } // New Location check
+                    ];
+                    delete query.$or; // Remove top-level $or
+                } else {
+                    query.$or = locationOr;
+                }
+            }
+
+            // 5. Marital Status
+            const maritalStatus = prefs.marital_status || prefs['marital_status'];
+            if (maritalStatus && maritalStatus !== 'Any') {
+                query.marital_status = maritalStatus;
+            }
+
+            // 6. Diet (Eating Habits)
+            const diet = prefs.eating_habits || prefs['eating_habits'];
+            if (diet && diet !== 'Any') {
+                query.eating_habits = diet;
+            }
+
+            // 7. Smoking Habits
+            const smoking = prefs.smoking_habits || prefs['smoking_habits'];
+            if (smoking && smoking !== 'Any') {
+                query.smoking_habits = smoking;
+            }
+
+            // 8. Drinking Habits
+            const drinking = prefs.drinking_habits || prefs['drinking_habits'];
+            if (drinking && drinking !== 'Any') {
+                query.drinking_habits = drinking;
+            }
+
+            // 9. Education
+            const education = prefs.highest_education || prefs['highest_education'];
+            if (education) {
+                query.highest_education = { $regex: education, $options: 'i' };
+            }
+
+            // 10. Occupation
+            const occupation = prefs.occupation || prefs['occupation'];
+            if (occupation) {
+                query.occupation = { $regex: occupation, $options: 'i' };
+            }
+
+            // 11. Annual Income
+            const income = prefs.annual_income || prefs['annual_income'];
+            if (income && income !== 'Any') {
+                query.annual_income = { $regex: income, $options: 'i' };
+            }
+            console.log('[Feed Filter] Final Query Construction:', JSON.stringify(query, null, 2));
+        } else {
+            console.log(`[Feed Filter] No preferences found for user ${currentUser.username} (or empty object)`);
+            console.log('Prefs Object:', prefs);
         }
 
         // 1. Fetch Candidates (Optimized with lean())
@@ -60,21 +200,21 @@ exports.getFeed = async (req, res) => {
 
         // 4. Process Permissions & Statuses
         let grantedUserIds = new Set();
-        const isAdmin = ['admin', 'superadmin'].includes(req.user.role);
+        const isAdmin = ['admin', 'superadmin'].includes(currentUser.role); // Use currentUser context
 
         // Bulk Fetch Statuses
         const visibleUserIds = visibleUsers.map(u => u._id);
-        const myId = req.user._id.toString();
+        const myId = currentUser._id.toString(); // Use context ID
 
         const [photoRequests, connectionRequests] = await Promise.all([
             PhotoAccessRequest.find({
-                requester: req.user._id,
+                requester: currentUser._id, // Context
                 targetUser: { $in: visibleUserIds }
             }).select('targetUser status').lean(),
             ConnectionRequest.find({
                 $or: [
-                    { requester: req.user._id, recipient: { $in: visibleUserIds } },
-                    { recipient: req.user._id, requester: { $in: visibleUserIds } }
+                    { requester: currentUser._id, recipient: { $in: visibleUserIds } }, // Context
+                    { recipient: currentUser._id, requester: { $in: visibleUserIds } }  // Context
                 ]
             }).select('requester recipient status').lean()
         ]);
@@ -509,7 +649,7 @@ exports.uploadPhotos = async (req, res) => {
     }
 };
 
-// @desc    Get User By Username
+// @desc    Get User By Username (Standardized Errors)
 // @route   GET /api/users/:username
 // @access  Private 
 exports.getUserProfile = async (req, res) => {
@@ -520,7 +660,20 @@ exports.getUserProfile = async (req, res) => {
         const user = await User.findOne({ username: targetUsername })
             .select('-password -__v');
 
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found',
+                code: 'USER_NOT_FOUND'
+            });
+        }
+
+        // Check if banned or suspended
+        if (user.status === 'banned' || user.status === 'suspended') {
+            return res.status(403).json({
+                message: 'This account has been suspended or banned.',
+                code: user.status === 'banned' ? 'USER_BANNED' : 'USER_SUSPENDED'
+            });
+        }
 
         const userObj = user.toObject();
         const isMe = currentUser._id.toString() === userObj._id.toString();
@@ -585,6 +738,67 @@ exports.getUserProfile = async (req, res) => {
         res.status(200).json(userObj);
     } catch (error) {
         logger.error('Get Profile Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get Public Profile Preview (No Auth Required)
+// @route   GET /api/users/:username/public-preview
+// @access  Public
+exports.getPublicProfilePreview = async (req, res) => {
+    try {
+        const targetUsername = req.params.username;
+
+        const user = await User.findOne({ username: targetUsername })
+            .select('first_name last_name username role profilePhoto photos is_profile_complete status');
+
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found',
+                code: 'USER_NOT_FOUND',
+                exists: false
+            });
+        }
+
+        if (user.status === 'banned' || user.status === 'suspended') {
+            return res.status(403).json({
+                message: 'This account is unavailable.',
+                code: user.status === 'banned' ? 'USER_BANNED' : 'USER_SUSPENDED',
+                exists: true
+            });
+        }
+
+        const userObj = user.toObject();
+
+        // Sign Only the Profile Photo (others hidden)
+        let profilePhotoUrl = userObj.profilePhoto;
+
+        // Try to find the key for profile photo
+        if (userObj.photos && userObj.photos.length > 0) {
+            const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
+            if (profilePhotoObj && profilePhotoObj.key) {
+                // If deep linking preview, maybe show blurred if strict privacy? 
+                // Usually public profile header is visible. Let's show it signed.
+                const signed = await getPreSignedUrl(profilePhotoObj.key);
+                if (signed) profilePhotoUrl = signed;
+            }
+        }
+
+        // Return minimal public info
+        const publicProfile = {
+            username: userObj.username,
+            first_name: userObj.first_name,
+            last_name: userObj.last_name, // Maybe hide last name for strict privacy? Let's keep for now.
+            profilePhoto: profilePhotoUrl,
+            role: userObj.role,
+            exists: true,
+            is_profile_complete: userObj.is_profile_complete
+        };
+
+        res.status(200).json(publicProfile);
+
+    } catch (error) {
+        logger.error('Get Public Profile Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -707,6 +921,82 @@ exports.setProfilePhoto = async (req, res) => {
     }
 };
 
+// @desc    Record Profile View
+// @route   POST /api/users/view/:userId
+// @access  Private
+exports.recordProfileView = async (req, res) => {
+    try {
+        const targetUserId = req.params.userId;
+        const viewerId = req.user._id;
+
+        if (targetUserId === viewerId.toString()) {
+            return res.status(200).json({ message: 'Self view ignored' });
+        }
+
+        // Check if viewed in last 24 hours
+        const lastView = await ProfileView.findOne({
+            viewer: viewerId,
+            profileOwner: targetUserId,
+            viewedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+        });
+
+        if (!lastView) {
+            await ProfileView.create({
+                viewer: viewerId,
+                profileOwner: targetUserId
+            });
+
+            // Send Notification
+            notifyUser(targetUserId, {
+                title: 'New Profile Visitor',
+                body: `${req.user.first_name} visited your profile.`,
+                type: 'profile_view',
+                data: { userId: viewerId } // Deep link data
+            });
+        }
+
+        res.status(200).json({ success: true });
+    } catch (error) {
+        logger.error('Record View Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get Who Viewed My Profile
+// @route   GET /api/users/viewers
+// @access  Private
+exports.getProfileViewers = async (req, res) => {
+    try {
+        const views = await ProfileView.find({ profileOwner: req.user._id })
+            .populate('viewer', 'first_name last_name username profilePhoto bio')
+            .sort({ viewedAt: -1 })
+            .limit(50); // Limit to recent 50
+
+        // Sign Photos
+        const data = await Promise.all(views.map(async (v) => {
+            const viewer = v.viewer;
+            if (!viewer) return null; // Handle deleted users
+
+            return {
+                _id: v._id,
+                viewer: {
+                    _id: viewer._id,
+                    username: viewer.username,
+                    displayName: viewer.first_name,
+                    profilePhoto: viewer.profilePhoto,
+                    bio: viewer.bio
+                },
+                viewedAt: v.viewedAt
+            };
+        }));
+
+        res.status(200).json({ success: true, data: data.filter(d => d) });
+    } catch (error) {
+        logger.error('Get Viewers Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 exports.updateLocation = async (req, res) => {
     const { latitude, longitude } = req.body;
 
@@ -798,150 +1088,25 @@ exports.getNearbyUsers = async (req, res) => {
 
                 if (profilePhotoObj && profilePhotoObj.key) {
                     try {
-                        const signedUrl = await getPreSignedUrl(profilePhotoObj.key);
-                        if (signedUrl) user.profilePhoto = signedUrl;
+                        const signed = await getPreSignedUrl(profilePhotoObj.key);
+                        if (signed) user.profilePhoto = signed;
                     } catch (e) {
                         // Keep original if signing fails
-                        logger.warn('Failed to sign map photo', { key: profilePhotoObj.key });
                     }
                 }
-            } else if (user.profilePhoto) {
-                // Fallback: If no photos array but profilePhoto exists (legacy?), try to extract key?
-                // Most likely photos array exists if profilePhoto exists.
             }
 
+            delete user.photos; // Don't send full photo array for map usage
             return user;
         }));
 
-        res.status(200).json({ success: true, data: sanitizedUsers });
+        res.status(200).json({
+            success: true,
+            data: sanitizedUsers
+        });
 
     } catch (error) {
-        logger.error('Get Nearby Users Error', { error: error.message });
+        logger.error('Get Nearby Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
-
-// @desc    Record Profile View
-// @route   POST /api/users/view/:userId
-// @access  Private
-exports.recordProfileView = async (req, res) => {
-    try {
-        const viewerId = req.user._id;
-        const profileOwnerId = req.params.userId;
-
-        if (viewerId.toString() === profileOwnerId.toString()) {
-            console.log(`[View Debug] Self view ignored: ${viewerId}`);
-            return res.status(200).json({ message: 'Self view ignored' });
-        }
-
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-
-        // Check if viewed today
-        const existingView = await ProfileView.findOne({
-            viewer: viewerId,
-            profileOwner: profileOwnerId,
-            viewedAt: { $gte: startOfDay }
-        });
-
-        if (existingView) {
-            console.log(`[View Debug] Already viewed today: ${viewerId} -> ${profileOwnerId}`);
-            return res.status(200).json({ message: 'Already viewed today' });
-        }
-
-        const newView = await ProfileView.create({
-            viewer: viewerId,
-            profileOwner: profileOwnerId
-        });
-        console.log(`[View Debug] NEW VIEW STORED: ${newView._id}`);
-
-        // Enforce limit: Keep only last 10 views
-        const views = await ProfileView.find({ profileOwner: profileOwnerId })
-            .sort({ viewedAt: -1 })
-            .limit(10)
-            .select('_id');
-
-        if (views.length === 10) {
-            const keepIds = views.map(v => v._id);
-            await ProfileView.deleteMany({
-                profileOwner: profileOwnerId,
-                _id: { $nin: keepIds }
-            });
-        }
-
-        // Real-time Notification
-        const io = req.app.get('io');
-        if (io) {
-            io.to(profileOwnerId).emit('profile_view', {
-                viewer: {
-                    _id: req.user._id,
-                    username: req.user.username,
-                    first_name: req.user.first_name,
-                    last_name: req.user.last_name,
-                    profilePhoto: req.user.profilePhoto // Note: This might be unsigned URL, but valid for notification thumb
-                },
-                viewedAt: new Date()
-            });
-        }
-
-        // Push Notification (Fire & Forget)
-        notifyUser(profileOwnerId, {
-            title: 'New Profile View',
-            body: `${req.user.first_name || req.user.username} viewed your profile`,
-            data: {
-                type: 'profile_view',
-                viewerId: req.user._id.toString(), // For routing
-                click_action: 'FLUTTER_NOTIFICATION_CLICK'
-            }
-        });
-
-        res.status(200).json({ success: true, message: 'View recorded' });
-    } catch (error) {
-        logger.error('Record View Error', { error: error.message });
-        res.status(500).json({ message: 'Server Error' });
-    }
-};
-
-// @desc    Get Profile Viewers
-// @route   GET /api/users/viewers
-// @access  Private
-exports.getProfileViewers = async (req, res) => {
-    try {
-        const myId = req.user._id;
-        const { page = 1, limit = 20 } = req.query;
-
-        const views = await ProfileView.find({ profileOwner: myId })
-            .sort({ viewedAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(parseInt(limit))
-            .populate('viewer', 'username first_name last_name profilePhoto photos avatar role')
-            .lean();
-
-        // Sign Profile Photos
-        const processedViews = await Promise.all(views.map(async (view) => {
-            if (view.viewer) {
-                // S3 Signing Logic
-                if (view.viewer.photos && view.viewer.photos.length > 0) {
-                    const profilePhotoObj = view.viewer.photos.find(p => p.isProfile) || view.viewer.photos[0];
-                    if (profilePhotoObj && profilePhotoObj.key) {
-                        const signed = await getPreSignedUrl(profilePhotoObj.key);
-                        if (signed) {
-                            view.viewer.profilePhoto = signed;
-                        }
-                    }
-                }
-            }
-            return view;
-        }));
-
-        res.status(200).json({ success: true, data: processedViews });
-
-    } catch (error) {
-        logger.error('Get Viewers Error', { error: error.message });
-        res.status(500).json({ message: 'Server Error' });
-    }
-};
-
-
-
-
