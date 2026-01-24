@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getUsers, getStats } = require('../controllers/admin.controller');
+const { getUsers, getStats, getReports, updateReportStatus } = require('../controllers/admin.controller');
 const { protect, admin } = require('../middlewares/authMiddleware');
 
 router.use(protect);
@@ -25,5 +25,9 @@ router.post('/send-push', require('../controllers/admin.controller').sendPush);
 // Franchise Management
 router.get('/franchises/requests', require('../controllers/admin.controller').getFranchiseRequests);
 router.patch('/franchises/:id/approve', require('../controllers/admin.controller').approveFranchise);
+
+// Report Management
+router.get('/reports', getReports);
+router.patch('/reports/:id', updateReportStatus);
 
 module.exports = router;
