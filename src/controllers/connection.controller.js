@@ -619,3 +619,67 @@ exports.cancelRequest = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+// @desc    Delete Connection (Remove Friend)
+// @route   POST /api/connections/delete
+// @access  Private
+exports.deleteConnection = async (req, res) => {
+    try {
+        const { targetUsername } = req.body;
+        const requesterId = req.user._id.toString();
+
+        if (!targetUsername) return res.status(400).json({ message: 'Target username is required' });
+
+        let targetUser;
+        try {
+            targetUser = await resolveUser(targetUsername);
+        } catch (e) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const targetUserId = targetUser._id.toString();
+
+        // Find and Delete the Connection Request (Accepted)
+        const deletedConn = await ConnectionRequest.findOneAndDelete({
+            $or: [
+                { requester: requesterId, recipient: targetUserId, status: 'accepted' },
+                { requester: targetUserId, recipient: requesterId, status: 'accepted' }
+            ]
+        });
+
+        if (!deletedConn) {
+            return res.status(404).json({ message: 'Connection not found' });
+        }
+
+        // Also cleanup any Photo/Details access requests between them to ensure clean slate?
+        // Optional: Keep them if they re-connect?
+        // Better to remove them to enforce privacy.
+        await Promise.all([
+            PhotoAccessRequest.deleteMany({
+                $or: [
+                    { requester: requesterId, targetUser: targetUserId },
+                    { requester: targetUserId, targetUser: requesterId }
+                ]
+            }),
+            DetailsAccessRequest.deleteMany({
+                $or: [
+                    { requester: requesterId, targetUser: targetUserId },
+                    { requester: targetUserId, targetUser: requesterId }
+                ]
+            })
+        ]);
+
+        logger.info(`Connection Deleted: ${req.user.username} <-> ${targetUser.username}`);
+
+        // Notify via Socket
+        const io = req.app.get('socketio');
+        if (io) {
+            io.to(targetUserId).emit('connection_removed', { userId: requesterId });
+        }
+
+        res.status(200).json({ success: true, message: 'Connection deleted' });
+
+    } catch (error) {
+        logger.error('Delete Connection Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

@@ -701,3 +701,48 @@ SOCKET.IO EVENTS (Real-time)
     viewedAt: "..."
   }
 
+
+*** DYNAMIC FILTERS ***
+GET /api/filters
+- Returns: { success: true, data: [FilterConfig] }
+- Description: Get visible filters for frontend rendering.
+
+GET /api/filters/admin (Admin Only)
+- Returns: { success: true, data: [FilterConfig] }
+- Description: Get all filters for management.
+
+POST /api/filters (Admin Only)
+- Body: { label, key, type, options, order, section }
+- Returns: { success: true, data: FilterConfig }
+
+PUT /api/filters/:id (Admin Only)
+- Body: { ...updates }
+- Returns: { success: true, data: FilterConfig }
+
+DELETE /api/filters/:id (Admin Only)
+- Returns: { success: true }
+
+
+*** USER SAFETY & MANAGEMENT ***
+POST /users/block
+- Body: { "targetUsername": "alice" }
+- Returns: { success: true, message: "User blocked" }
+
+POST /users/unblock
+- Body: { "targetUsername": "alice" }
+- Returns: { success: true, message: "User unblocked" }
+
+POST /users/report
+- Body: { "targetUsername": "alice", "reason": "Spam", "description": "..." }
+- Returns: { success: true, message: "User reported" }
+
+DELETE /connections/delete
+- Body: { "targetUsername": "alice" }
+- Returns: { success: true, message: "Connection deleted" }
+
+
+*** FRANCHISE & PDF ***
+GET /franchise/custom-matches/:profileId/pdf
+- Query: ?language=english (or hindi/marathi)
+- Returns: PDF File Download
+- Description: Generates a PDF of matches tailored for the specific profile.

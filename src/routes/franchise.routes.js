@@ -13,6 +13,7 @@ router.post('/create-profile', protect, franchiseController.createFranchiseProfi
 router.get('/profiles', protect, franchiseController.getFranchiseProfiles);
 router.put('/profiles/:profileId/preferences', protect, franchiseController.updateProfilePreferences);
 router.get('/profiles/:profileId', protect, franchiseController.getMemberProfile);
+router.get('/custom-matches/:profileId/pdf', protect, franchiseController.generateMatchPdf); // Added route
 
 // Multi-step Wizard & Photo Support
 router.patch('/profiles/:profileId', protect, franchiseController.updateMemberProfile);

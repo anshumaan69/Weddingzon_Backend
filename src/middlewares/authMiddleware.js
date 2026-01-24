@@ -40,4 +40,27 @@ const admin = (req, res, next) => {
     }
 };
 
-module.exports = { protect, admin };
+const optionalAuth = async (req, res, next) => {
+    let token;
+
+    if (req.cookies.access_token) {
+        token = req.cookies.access_token;
+    } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+        return next();
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = await User.findById(decoded.id).select('-password').lean();
+        next();
+    } catch (error) {
+        // Invalid token, just proceed as guest
+        next();
+    }
+};
+
+module.exports = { protect, admin, optionalAuth };

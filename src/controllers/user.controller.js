@@ -3,11 +3,13 @@ const ProfileView = require('../models/ProfileView');
 const mongoose = require('mongoose');
 const PhotoAccessRequest = require('../models/PhotoAccessRequest');
 const ConnectionRequest = require('../models/ConnectionRequest');
+const DetailsAccessRequest = require('../models/DetailsAccessRequest');
 // const cloudinary = require('../config/cloudinary'); // Deprecated
 const { getPreSignedUrl, uploadToS3 } = require('../utils/s3'); // Centralized S3 Utils
 const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { s3Client } = require('../config/s3');
 const { notifyUser } = require('../services/notification.service');
+const Report = require('../models/Report');
 
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
@@ -60,7 +62,10 @@ exports.getFeed = async (req, res) => {
         // Base Query
         const query = {
             status: 'active',
-            _id: { $ne: currentUser._id }, // Exclude current context user
+            _id: {
+                $ne: currentUser._id,
+                $nin: currentUser.blockedUsers || []
+            },
             is_profile_complete: true, // Show only completed profiles
             $or: [
                 { 'photos.0': { $exists: true } },
@@ -334,7 +339,10 @@ exports.searchUsers = async (req, res) => {
 
         const query = {
             status: 'active',
-            _id: { $ne: req.user._id },
+            _id: {
+                $ne: req.user._id,
+                $nin: req.user.blockedUsers || []
+            },
             is_profile_complete: true, // Show only completed profiles
             $or: [
                 { 'photos.0': { $exists: true } },
@@ -1107,6 +1115,123 @@ exports.getNearbyUsers = async (req, res) => {
 
     } catch (error) {
         logger.error('Get Nearby Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+// @desc    Block User
+// @route   POST /api/users/block
+// @access  Private
+exports.blockUser = async (req, res) => {
+    try {
+        const { targetUsername } = req.body;
+        // Re-fetch user to get Mongoose Document (middleware uses lean())
+        const currentUser = await User.findById(req.user._id);
+        if (!currentUser) return res.status(401).json({ message: 'User not found' });
+
+        if (!targetUsername) return res.status(400).json({ message: 'Username required' });
+        if (targetUsername === currentUser.username) return res.status(400).json({ message: 'Cannot block yourself' });
+
+        const targetUser = await User.findOne({ username: targetUsername });
+        if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+        // Helper to ensure blockedUsers array exists
+        if (!currentUser.blockedUsers) currentUser.blockedUsers = [];
+
+        // Add to blockedUsers if not present
+        if (!currentUser.blockedUsers.includes(targetUser._id)) {
+            currentUser.blockedUsers.push(targetUser._id);
+            await currentUser.save();
+        }
+
+        // Remove any connection
+        await ConnectionRequest.findOneAndDelete({
+            $or: [
+                { requester: currentUser._id, recipient: targetUser._id },
+                { requester: targetUser._id, recipient: currentUser._id }
+            ]
+        });
+
+        // Remove access requests
+        await Promise.all([
+            PhotoAccessRequest.deleteMany({
+                $or: [
+                    { requester: currentUser._id, targetUser: targetUser._id },
+                    { requester: targetUser._id, targetUser: currentUser._id }
+                ]
+            }),
+            DetailsAccessRequest.deleteMany({
+                $or: [
+                    { requester: currentUser._id, targetUser: targetUser._id },
+                    { requester: targetUser._id, targetUser: currentUser._id }
+                ]
+            })
+        ]);
+
+        logger.info(`User Blocked: ${currentUser.username} blocked ${targetUser.username}`);
+        res.status(200).json({ success: true, message: 'User blocked' });
+
+    } catch (error) {
+        logger.error('Block User Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Unblock User
+// @route   POST /api/users/unblock
+// @access  Private
+exports.unblockUser = async (req, res) => {
+    try {
+        const { targetUsername } = req.body;
+        // Re-fetch user to get Mongoose Document (middleware uses lean())
+        const currentUser = await User.findById(req.user._id);
+        if (!currentUser) return res.status(401).json({ message: 'User not found' });
+
+        const targetUser = await User.findOne({ username: targetUsername });
+        if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+        if (!currentUser.blockedUsers) currentUser.blockedUsers = [];
+        currentUser.blockedUsers = currentUser.blockedUsers.filter(id => id.toString() !== targetUser._id.toString());
+        await currentUser.save();
+
+        logger.info(`User Unblocked: ${currentUser.username} unblocked ${targetUser.username}`);
+        res.status(200).json({ success: true, message: 'User unblocked' });
+
+    } catch (error) {
+        logger.error('Unblock User Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Report User
+// @route   POST /api/users/report
+// @access  Private
+exports.reportUser = async (req, res) => {
+    try {
+        const { targetUsername, reason, description } = req.body;
+        const currentUser = req.user;
+
+        const targetUser = await User.findOne({ username: targetUsername });
+        if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+        const report = await Report.create({
+            reporter: currentUser._id,
+            reportedUser: targetUser._id,
+            reason,
+            description
+        });
+
+        // Add to User's reports array? (Optional, if we want quick access from User doc)
+        if (!targetUser.reports) targetUser.reports = [];
+        targetUser.reports.push(report._id);
+        await targetUser.save();
+
+        // Notify Admin (Optional: Email or Push to Admin)
+        // For now just log
+        logger.warn(`User Reported: ${currentUser.username} reported ${targetUser.username} for ${reason}`);
+
+        res.status(201).json({ success: true, message: 'Report submitted' });
+    } catch (error) {
+        logger.error('Report User Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };

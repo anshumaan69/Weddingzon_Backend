@@ -12,7 +12,8 @@ const {
     getConnections,
     getIncomingRequests,
     getNotifications,
-    cancelRequest
+    cancelRequest,
+    deleteConnection
 } = require('../controllers/connection.controller');
 const { protect } = require('../middlewares/authMiddleware');
 const { ensureProfileComplete } = require('../middlewares/profileMiddleware');
@@ -27,6 +28,7 @@ router.get('/status/:username', protect, ensureProfileComplete, checkConnectionS
 router.post('/send', protect, ensureProfileComplete, sendConnectionRequest);
 router.post('/accept', protect, ensureProfileComplete, acceptConnectionRequest);
 router.post('/reject', protect, ensureProfileComplete, rejectConnectionRequest);
+router.delete('/delete', protect, ensureProfileComplete, deleteConnection); // Added delete connection route
 router.post('/cancel', protect, ensureProfileComplete, cancelRequest); // New Cancel Route
 router.get('/my-connections', protect, ensureProfileComplete, getConnections);
 router.get('/requests', protect, ensureProfileComplete, getIncomingRequests);
