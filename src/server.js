@@ -136,6 +136,21 @@ app.set('socketio', io);
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+
+  // KEEPALIVE JOB: Ping server every minute to keep it alive (Native implementation to avoid dependency issues)
+  setInterval(() => {
+    const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+    console.log(`[KeepAlive] Pinging ${url}`);
+
+    const protocol = url.startsWith('https') ? require('https') : require('http');
+
+    protocol.get(url, (res) => {
+      console.log(`[KeepAlive] Ping Status: ${res.statusCode}`);
+      res.resume();
+    }).on('error', (err) => {
+      console.error(`[KeepAlive] Error: ${err.message}`);
+    });
+  }, 1 * 60 * 1000); // 1 minute
 });

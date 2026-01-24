@@ -331,18 +331,26 @@ exports.getFranchiseRequests = async (req, res) => {
 // @access  Private/Admin
 exports.approveFranchise = async (req, res) => {
     try {
+        console.log('--- Approve Franchise Request Received ---');
+        console.log('ID:', req.params.id);
+        console.log('Body:', req.body);
+
         const { status } = req.body; // 'active' or 'rejected'
         if (!['active', 'rejected'].includes(status)) {
+            console.log('Invalid Status:', status);
             return res.status(400).json({ message: 'Invalid status' });
         }
 
         const user = await User.findById(req.params.id);
         if (!user || user.role !== 'franchise') {
+            console.log('User not found or not franchise:', user);
             return res.status(404).json({ message: 'Franchise user not found' });
         }
 
+        console.log('Current Status:', user.franchise_status);
         user.franchise_status = status;
         await user.save();
+        console.log('New Status Saved:', user.franchise_status);
 
         logger.info(`Franchise ${user.username} status updated to ${status}`);
         res.status(200).json({ success: true, message: `Franchise ${status}` });
