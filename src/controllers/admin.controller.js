@@ -352,3 +352,40 @@ exports.approveFranchise = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+exports.getReports = async (req, res) => {
+    try {
+        const { status } = req.query;
+        const query = status ? { status } : {};
+
+        const reports = await require('../models/Report').find(query)
+            .populate('reporter', 'username first_name last_name profilePhoto')
+            .populate('reportedUser', 'username first_name last_name profilePhoto')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, data: reports });
+    } catch (error) {
+        logger.error('Get Reports Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+exports.updateReportStatus = async (req, res) => {
+    try {
+        const { status, adminNotes } = req.body;
+        const report = await require('../models/Report').findById(req.params.id);
+
+        if (!report) {
+            return res.status(404).json({ message: 'Report not found' });
+        }
+
+        if (status) report.status = status;
+        if (adminNotes) report.adminNotes = adminNotes;
+
+        await report.save();
+        res.status(200).json({ success: true, data: report });
+    } catch (error) {
+        logger.error('Update Report Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
