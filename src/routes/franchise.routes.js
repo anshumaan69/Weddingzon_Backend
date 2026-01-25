@@ -22,7 +22,8 @@ router.post('/profiles/:profileId/photos', protect, (req, res, next) => {
     console.log('Content-Type:', req.headers['content-type']);
     next();
 }, upload.array('photos', 10), franchiseController.uploadMemberPhoto);
+// Set Profile Photo
+router.patch('/profiles/:profileId/photos/:photoId/set-profile', protect, franchiseController.setMemberProfilePhoto);
 router.delete('/profiles/:profileId/photos/:photoId', protect, franchiseController.deleteMemberPhoto);
-// Note: setProfilePhoto logic for member can be added if needed, reusing delete/upload logic for now.
 
 module.exports = router;

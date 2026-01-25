@@ -7,7 +7,6 @@ const logger = require('../utils/logger');
 // Local logic removed in favor of centralized s3.js logic
 
 // ... existing code ...
-
 // Old getMe removed
 const { OAuth2Client } = require('google-auth-library');
 // Twilio Removed by User Request
@@ -401,6 +400,14 @@ exports.registerDetails = async (req, res) => {
         if (last_name) user.last_name = last_name;
         if (role) user.role = role;
         if (created_for) user.created_for = created_for;
+
+        // Franchise Details - Only if role is franchise
+        if (role === 'franchise' && req.body.franchise_details) {
+            user.franchise_details = {
+                ...user.franchise_details, // Keep existing if any (though usually empty at start)
+                ...req.body.franchise_details
+            };
+        }
         if (dob) {
             user.dob = dob;
             // Age Validation
@@ -591,8 +598,8 @@ exports.logout = async (req, res) => {
 exports.getMe = async (req, res) => {
     const startTotal = performance.now();
     try {
-        // Cache for 60 seconds (Client Side) - Reduces repeat fetches on navigation
-        res.set('Cache-Control', 'private, max-age=60');
+        // Cache removed to ensure role updates are reflected immediately
+        // res.set('Cache-Control', 'private, max-age=60');
 
         // Optimization: user is already fetched in authMiddleware with lean()
         const user = req.user; // Already retrieved from Cache or DB in middleware

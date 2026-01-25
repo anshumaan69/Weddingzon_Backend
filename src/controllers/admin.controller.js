@@ -342,22 +342,36 @@ exports.approveFranchise = async (req, res) => {
         }
 
         const user = await User.findById(req.params.id);
-        if (!user || user.role !== 'franchise') {
-            console.log('User not found or not franchise:', user);
-            return res.status(404).json({ message: 'Franchise user not found' });
+        if (!user) {
+            console.log('User not found by ID:', req.params.id);
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        console.log('Current Status:', user.franchise_status);
+        if (user.role !== 'franchise') {
+            console.log('User is not franchise. Role:', user.role);
+            return res.status(404).json({ message: 'Franchise user not found (Role mismatch)' });
+        }
+
+        console.log('Current Status (Before):', user.franchise_status);
         user.franchise_status = status;
-        await user.save();
-        console.log('New Status Saved:', user.franchise_status);
+
+        // Log validation errors if any (try/catch around save specifically?)
+        // No, main catch handles it. But let's log specifically before saving.
+        console.log('Attempting to save new status:', status);
+
+        const savedUser = await user.save();
+        console.log('Save completed. New Status (After):', savedUser.franchise_status);
 
         logger.info(`Franchise ${user.username} status updated to ${status}`);
         res.status(200).json({ success: true, message: `Franchise ${status}` });
 
     } catch (error) {
+        console.error('CRITICAL: Approve Franchise Save Failed:', error);
+        if (error.name === 'ValidationError') {
+            console.error('Validation Details:', error.errors);
+        }
         logger.error('Approve Franchise Error', { error: error.message });
-        res.status(500).json({ message: 'Server Error' });
+        res.status(500).json({ message: 'Server Error: ' + error.message });
     }
 };
 

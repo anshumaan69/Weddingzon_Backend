@@ -60,6 +60,14 @@ const userSchema = new mongoose.Schema(
             enum: ['pending_payment', 'pending_approval', 'active', 'rejected', null],
             default: null,
         },
+        franchise_details: {
+            business_name: { type: String },
+            gst_number: { type: String },
+            business_address: { type: String },
+            city: { type: String },
+            state: { type: String },
+            pincode: { type: String },
+        },
         created_by: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
