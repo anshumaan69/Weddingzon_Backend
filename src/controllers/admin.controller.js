@@ -65,6 +65,51 @@ exports.getUsers = async (req, res) => {
     }
 };
 
+// @desc    Get Emails by Role (For Bulk Email)
+// @route   GET /api/admin/emails
+// @access  Private/Admin
+exports.getEmails = async (req, res) => {
+    try {
+        const { role } = req.query;
+        const query = { status: 'active' }; // Only active users
+
+        if (role && role !== 'all') {
+            if (role === 'admin' || role === 'superadmin' || role === 'super_admin') {
+                const targetRole = (role === 'superadmin') ? 'super_admin' : role;
+                query.admin_role = targetRole;
+            } else {
+                query.role = role;
+            }
+        }
+
+        const users = await User.find(query).select('email');
+        const emails = users.map(u => u.email).filter(e => e); // Filter out null/undefined
+
+        res.status(200).json({ success: true, count: emails.length, data: emails });
+    } catch (error) {
+        logger.error('Admin Get Emails Error', { admin: req.user.username, error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get User Details (Admin View)
+// @route   GET /api/admin/users/:id
+// @access  Private/Admin
+exports.getUserDetails = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({ success: true, data: user });
+    } catch (error) {
+        logger.error('Admin Get User Details Error', { admin: req.user.username, error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 // @desc    Get System Stats
 // @route   GET /api/admin/stats
 // @access  Private/Admin

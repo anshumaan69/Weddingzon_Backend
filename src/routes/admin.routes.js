@@ -7,6 +7,8 @@ router.use(protect);
 router.use(admin);
 
 router.get('/users', getUsers);
+router.get('/emails', require('../controllers/admin.controller').getEmails);
+router.get('/users/:id', require('../controllers/admin.controller').getUserDetails);
 router.patch('/users/:id/status', require('../controllers/admin.controller').updateUserStatus);
 router.patch('/users/:id/role', require('../controllers/admin.controller').updateUserRole);
 router.delete('/users/:id', require('../controllers/admin.controller').deleteUser);
