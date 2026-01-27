@@ -62,6 +62,7 @@ exports.getFeed = async (req, res) => {
         // Base Query
         const query = {
             status: 'active',
+            role: { $ne: 'franchise' }, // Exclude franchise accounts
             _id: {
                 $ne: currentUser._id,
                 $nin: currentUser.blockedUsers || []
@@ -339,6 +340,7 @@ exports.searchUsers = async (req, res) => {
 
         const query = {
             status: 'active',
+            role: { $ne: 'franchise' }, // Exclude franchise accounts
             _id: {
                 $ne: req.user._id,
                 $nin: req.user.blockedUsers || []
@@ -1030,7 +1032,7 @@ exports.updateLocation = async (req, res) => {
 };
 
 exports.getNearbyUsers = async (req, res) => {
-    const { latitude, longitude, radius = 50 } = req.query; // Radius in KM
+    const { latitude, longitude, radius = 50, viewAs } = req.query; // Radius in KM
 
     if (!latitude || !longitude) {
         return res.status(400).json({ message: 'Latitude and Longitude are required' });
@@ -1041,6 +1043,88 @@ exports.getNearbyUsers = async (req, res) => {
         const lng = parseFloat(longitude);
         const maxDistMeters = parseInt(radius) * 1000;
 
+        // Context User (Defaults to logged-in user)
+        let currentUser = req.user;
+
+        // Franchise "View As" Logic
+        if (req.user.role === 'franchise' && viewAs) {
+            const member = await User.findOne({ _id: viewAs, created_by: req.user._id });
+            if (member) {
+                currentUser = member;
+            }
+        }
+
+        // Base Query
+        const query = {
+            status: 'active',
+            role: { $ne: 'franchise' }, // Exclude franchise accounts
+            _id: { $ne: new mongoose.Types.ObjectId(currentUser._id) },
+            is_profile_complete: true
+        };
+
+        // Apply Preferences
+        const prefs = currentUser.partner_preferences;
+        // Helper to get pref value whether Map or Object
+        const getPref = (key) => {
+            if (!prefs) return null;
+            return (typeof prefs.get === 'function') ? prefs.get(key) : prefs[key];
+        };
+
+        if (prefs) {
+            // 1. Age
+            const minAge = getPref('minAge');
+            const maxAge = getPref('maxAge');
+            if (minAge || maxAge) {
+                const today = new Date();
+                const dobQuery = {};
+                if (maxAge) {
+                    const date = new Date(today.getFullYear() - parseInt(maxAge) - 1, today.getMonth(), today.getDate());
+                    dobQuery.$gte = date;
+                }
+                if (minAge) {
+                    const date = new Date(today.getFullYear() - parseInt(minAge), today.getMonth(), today.getDate());
+                    dobQuery.$lte = date;
+                }
+                if (Object.keys(dobQuery).length > 0) query.dob = dobQuery;
+            }
+
+            // 2. Religion
+            const religion = getPref('religion');
+            if (religion && religion !== 'Any') query.religion = religion;
+
+            // 3. Community
+            const community = getPref('community');
+            if (community) query.community = { $regex: community, $options: 'i' };
+
+            // 4. Marital Status
+            const maritalStatus = getPref('marital_status');
+            if (maritalStatus && maritalStatus !== 'Any') query.marital_status = maritalStatus;
+
+            // 5. Diet
+            const diet = getPref('eating_habits');
+            if (diet && diet !== 'Any') query.eating_habits = diet;
+
+            // 6. Smoking
+            const smoking = getPref('smoking_habits');
+            if (smoking && smoking !== 'Any') query.smoking_habits = smoking;
+
+            // 7. Drinking
+            const drinking = getPref('drinking_habits');
+            if (drinking && drinking !== 'Any') query.drinking_habits = drinking;
+
+            // 8. Education
+            const education = getPref('highest_education');
+            if (education) query.highest_education = { $regex: education, $options: 'i' };
+
+            // 9. Occupation
+            const occupation = getPref('occupation');
+            if (occupation) query.occupation = { $regex: occupation, $options: 'i' };
+
+            // 10. Income
+            const income = getPref('annual_income');
+            if (income && income !== 'Any') query.annual_income = { $regex: income, $options: 'i' };
+        }
+
         // Use aggregation to get distance and user data
         const users = await User.aggregate([
             {
@@ -1050,7 +1134,7 @@ exports.getNearbyUsers = async (req, res) => {
                     maxDistance: maxDistMeters,
                     spherical: true,
                     key: 'location', // Explicitly specify the index key
-                    query: { status: 'active', _id: { $ne: new mongoose.Types.ObjectId(req.user._id) } }
+                    query: query
                 }
             },
             { $limit: 100 },
