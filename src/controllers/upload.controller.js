@@ -15,9 +15,8 @@ exports.uploadFile = async (req, res) => {
         const folder = req.user ? `uploads/${req.user._id}` : 'uploads/general';
 
         // Use existing S3 utility
-        // uploadToS3 expects (fileBuffer, fileName, mimeType, folder)
-        // Adjusting based on standard usage usually seen
-        const result = await uploadToS3(file.buffer, file.originalname, file.mimetype, folder);
+        // uploadToS3 expects (file, folder, client, bucketName) where file is the multer object
+        const result = await uploadToS3(file, folder);
 
         res.status(200).json({
             success: true,
