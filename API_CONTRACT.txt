@@ -12,106 +12,100 @@ This API powers the WeddingZon platform, facilitating user onboarding, feed inte
   
 DATA MODELS
 -----------
-User Schema (MongoDB):
+### 1. USER OBJECT
 {
   "_id": "ObjectId",
-  "username": { "type": "String", "unique": true, "trim": true },
-  "email": { "type": "String", "unique": true, "sparse": true },
-  "phone": { "type": "String", "unique": true, "sparse": true },
-  "auth_provider": { "type": "String", "enum": ["google", "local", "google_phone"], "default": "local" },
+  "username": "String (Unique)",
+  "email": "String (Unique, Sparse)",
+  "phone": "String (Unique, Sparse)",
   "role": { 
-    "type": "String", 
-    "enum": ["user", "member", "vendor", "franchise", "bride", "groom"], 
-    "default": "user",
-    "description": "'member' is the standard role for users seeking partners. 'bride'/'groom' are legacy."
+     "type": "String", 
+     "enum": ["user", "member", "vendor", "franchise", "bride", "groom"],
+     "default": "user"
   },
   "admin_role": { "type": "String", "enum": ["super_admin", "admin"], "default": null },
-  "is_phone_verified": { "type": "Boolean", "default": false },
-  "is_profile_complete": { "type": "Boolean", "default": false },
   "status": { "type": "String", "enum": ["active", "banned", "suspended"], "default": "active" },
+  "is_profile_complete": "Boolean",
   
-  // Basic Details
+  // DETAILS
   "first_name": "String",
   "last_name": "String",
-  "dob": "Date",
-  "gender": { "type": "String", "enum": ["Male", "Female", "Other"] },
-  "created_for": "String",
+  "dob": "Date (ISO 8601)",
+  "gender": { "enum": ["Male", "Female", "Other"] },
+  "bio": "String (Max 150 chars)",
   "height": "String",
-  "marital_status": "String",
-  "mother_tongue": "String",
-  "disability": "String",
-  "aadhar_number": "String",
-  "blood_group": "String",
-
-  // Location
-  "country": "String",
-  "state": "String",
-  "city": "String",
-
-  // Family
-  "father_status": "String",
-  "mother_status": "String",
-  "brothers": "Number",
-  "sisters": "Number",
-  "family_status": "String",
-  "family_type": "String",
-  "family_values": "String",
-  "annual_income": "String",
-  "family_location": "String",
-
-  // Education & Career
-  "highest_education": "String",
-  "educational_details": "String",
-  "occupation": "String",
-  "employed_in": "String",
-  "personal_income": "String",
-  "working_sector": "String",
-  "working_location": "String",
-
-  // Religion & Lifestyle
   "religion": "String",
   "community": "String",
-  "sub_community": "String",
-  "appearance": "String",
-  "living_status": "String",
-  "physical_status": "String",
-  "eating_habits": "String",
-  "smoking_habits": "String",
-  "drinking_habits": "String",
-  "hobbies": ["String"],
+  "marital_status": "String",
+  "annual_income": "String",
+  "education": "String",
+  "occupation": "String",
+  "city": "String",
+  "state": "String",
+  "country": "String",
 
-  // Other
-  "about_me": "String",
-  "profilePhoto": "String (URL)",
-  "photos": [{
-     "url": "String",
-     "publicId": "String",
-     "isProfile": "Boolean",
-     "restricted": "Boolean"
-  }]
+  // FRANCHISE SPECIFIC
+  "franchise_status": "pending_payment | pending_approval | active | rejected",
+  "franchise_details": {
+      "business_name": "String",
+      "gst_number": "String",
+      "business_address": "String",
+      "city": "String",
+      "state": "String",
+      "pincode": "String"
+  },
+
+  // VENDOR SPECIFIC
+  "vendor_status": "pending_approval | active | rejected",
+  "vendor_details": {
+      "business_name": "String",
+      "service_type": "String",
+      "price_range": "String ($$ - $$$)",
+      "experience_years": "Number"
+  },
+
+  // MEDIA
+  "profilePhoto": "String (Signed URL)",
+  "photos": [
+    {
+      "url": "String (Signed URL)",
+      "key": "String (S3 Key)",
+      "isProfile": "Boolean",
+      "restricted": "Boolean (True if access not granted)"
+    }
+  ],
+
+  // PREFERENCES (Franchise Managed)
+  "partner_preferences": {
+      "minAge": "Number",
+      "maxAge": "Number",
+      "religion": "String",
+      "community": "String",
+      "location": "String"
+      // ...dynamic fields
+  }
 }
 
-AUTHENTICATION
---------------
-- Method: HTTP-Only Cookies (Web) OR Bearer Token (Mobile/Flutter)
-- Cookie Names: `access_token`, `refresh_token`, `csrf_token`
-- Header: `Authorization: Bearer <token>` (Recommended for Mobile)
-- CSRF Protection: Required for cookie-based sessions via `X-CSRF-Token` header. Skipped for Bearer token requests.
-
-COMMON RESPONSE FORMATS
------------------------
-Success (200 OK):
+### 2. PRODUCT OBJECT
 {
-  "success": true,
-  "data": { ... } // Or specific fields like "user", "message"
+  "_id": "ObjectId",
+  "vendor": "ObjectId (Ref: User)",
+  "name": "String (Required)",
+  "description": "String (Required)",
+  "price": "Number (Required)",
+  "category": {
+      "type": "String",
+      "enum": ["Clothing", "Jewelry", "Venue", "Photography", "Makeup", "Decor", "Gifts", "Invitation", "Catering", "Transportation", "Music", "Other"]
+  },
+  "images": ["String (URL)"],
+  "isActive": "Boolean",
+  "averageRating": "Number",
+  "numReviews": "Number"
 }
 
-Error (4xx/5xx):
-{
-  "message": "Error description",
-  "error": "Error code (optional)"
-}
-
+================================================================================
+                                 AUTH & ACCOUNTS
+================================================================================
 
 ================================================================================
                                  AUTH & ACCOUNTS
@@ -121,25 +115,19 @@ Error (4xx/5xx):
    POST /auth/google
    Desc: Authenticate a user via Google OAuth 2.0.
    
-   Request Body:
+   Request Body (One of the following is required):
    {
-     "code": "4/0AeaYSH...",          // Required (Auth Code Flow): Auth code from Google
-     "redirect_uri": "postmessage",   // Required for Mobile/SPA (Auth Code Flow)
-     "idToken": "eyJ..."              // Optional (Implicit Flow): Google ID Token
+     "code": "4/0AeaYSH...",          // (Auth Code Flow)
+     "redirect_uri": "postmessage",   // Required if using 'code'
+     "idToken": "eyJ..."              // (Implicit Flow)
    }
 
    Response (200 OK):
    {
      "success": true,
-     "accessToken": "eyJ...",         // Backend JWT Access Token (Send this in Authorization header for API calls)
-     "refreshToken": "eyJ...",        // Backend Refresh Token
-     "user": {
-       "_id": "65a1b2c3d4e5f67890123456",
-       "email": "user@example.com",
-       "username": "user1234",
-       "role": "user",
-       ...
-     }
+     "accessToken": "eyJ...",
+     "refreshToken": "eyJ...",
+     "user": { ...UserObject }
    }
 
 2. SEND OTP
@@ -148,13 +136,11 @@ Error (4xx/5xx):
    
    Request Body:
    {
-     "phone": "+919876543210"         // Required
+     "phone": "+919876543210" // Required (E.164 format)
    }
 
-   Response (200 OK):
-   {
-     "message": "OTP sent successfully"
-   }
+   Response (200 OK): { "message": "OTP sent successfully" }
+   Error (400): { "message": "Invalid phone number" }
 
 3. VERIFY OTP
    POST /auth/verify-otp
@@ -162,78 +148,118 @@ Error (4xx/5xx):
    
    Request Body:
    {
-     "phone": "+919876543210",        // Required
-     "code": "123456"                 // Required
+     "phone": "+919876543210", // Required
+     "code": "123456"          // Required
    }
 
    Response (200 OK):
    {
      "success": true,
-     "user": { ... }
+     "user": { ...UserObject }
    }
+   Error (400): { "message": "Invalid OTP or expired" }
 
-   Response (400 Bad Request):
-   {
-     "message": "Invalid OTP"
-   }
-
-4. UPDATE PROFILE DETAILS
+4. UPDATE PROFILE DETAILS (Onboarding)
    POST /auth/register-details
-   Desc: Update profile information (Protected).
+   Desc: Update profile information.
    
-   Request Body:
+   Request Body (Required Fields):
    {
-     "first_name": "John",
-     "last_name": "Doe",
-     "dob": "1995-05-15",
-     "gender": "Male",
-     "role": "groom",
-     "religion": "Hindu",
-     "about_me": "Software Engineer..."
+     "first_name": "String",
+     "last_name": "String",
+     "dob": "Date (YYYY-MM-DD)",
+     "gender": "Male | Female | Other",
+     "role": "groom | bride | member",
+     "religion": "String",
+     "about_me": "String"
    }
 
-   Response (200 OK):
-   {
-     "message": "Profile updated successfully",
-     "user": { ... }
-   }
+   Response (200 OK): { "message": "Profile updated successfully", "user": { ... } }
 
 5. GET CURRENT USER
    GET /auth/me
    Desc: Retrieve currently logged-in user context.
+   Query: ?full=true (Optional, to sign all photo URLs)
    
-   Response (200 OK):
-   {
-     "_id": "...",
-     "email": "john@example.com",
-     "role": "groom",
-     "is_profile_complete": true,
-     "profilePhoto": "https://... (Signed S3 URL if ?full=true or standard signed url)"
-   }
-   
-   Note: Use `?full=true` query param to sign ALL photos in the `photos` array (slow). Default signs only `profilePhoto`.
+   Response (200 OK): UserObject
 
 6. LOGOUT
    POST /auth/logout
-   Desc: Invalidate session and clear cookies.
    
-   Response (200 OK):
-   {
-     "message": "Logged out"
-   }
+   Response (200 OK): { "message": "Logged out" }
 
 7. REFRESH TOKEN
    POST /auth/refresh
-   Desc: Get a new access token using a valid refresh token.
+   Desc: Get a new access token using a valid refresh token (HttpOnly Cookie).
    
-   Request (Cookie): `refresh_token` must be present.
-   
+   Response (200 OK): { "success": true, "accessToken": "..." }
+
+
+
+================================================================================
+                                  UPLOADS
+================================================================================
+
+1. UPLOAD FILE (Generic)
+   POST /uploads
+   Desc: Generic file upload (e.g. for products, chat).
+   Content-Type: multipart/form-data
+   Body: { "photo": [File] }
+   Response: { "success": true, "url": "..." }
+
+
+================================================================================
+                                  PRODUCTS
+================================================================================
+
+1. GET ALL PRODUCTS
+   GET /products
+   Desc: List products with filters.
+   Query Params:
+     - category: String (Enum: Clothing, Jewelry, Venue...)
+     - minPrice, maxPrice: Number
+     - search: String (Matches name or description)
+     - page: Number (Default 1)
+     - limit: Number (Default 12)
+
    Response (200 OK):
    {
      "success": true,
-     "accessToken": "ey..." // New short-lived token
+     "data": [ ...ProductObjects ],
+     "pagination": { "total": 100, "page": 1, "pages": 10 }
    }
 
+2. GET PRODUCT
+   GET /products/:id
+   Response: { "success": true, "data": ProductObject }
+
+3. CREATE PRODUCT (Vendor Only)
+   POST /products
+   Body (Required):
+   {
+     "name": "String",
+     "description": "String",
+     "price": "Number",
+     "category": "String (Valid Enum)",
+     "images": ["String (URL)"]
+   }
+
+4. MY PRODUCTS
+   GET /products/my/products
+   Desc: List logged-in vendor's products.
+
+5. UPDATE PRODUCT
+   PATCH /products/:id
+   Body: { ...Partial Product Fields }
+
+6. DELETE PRODUCT
+   DELETE /products/:id
+
+
+
+================================================================================
+                                 USER & FEED
+================================================================================
 
 ================================================================================
                                  USER & FEED
@@ -243,200 +269,116 @@ Error (4xx/5xx):
    GET /users/feed
    Desc: Fetch a paginated, shuffled feed of potential matches.
    Query Params:
-    - cursor: (Optional) ID of the last user seen (for pagination).
+    - cursor: (Optional) ID of previous last item.
+    - viewAs: (Required for Franchise) ID of member to view feed as.
     
     Response (200 OK):
     {
       "success": true,
-      "data": [
-        {
-          "_id": "65b...",
-          "username": "alice",
-          "profilePhoto": "https://s3... (Signed S3 URL)",
-          "photos": [
-             { "url": "...", "isProfile": true, "restricted": false },
-             { "url": "...", "isProfile": false, "restricted": true } // Restricted photos are blurred
-          ],
-          "bio": "...",
-          "connectionStatus": "none" | "pending" | "accepted",
-          "photoRequestStatus": "none" | "pending" | "granted"
-        }
-      ],
+      "data": [ ...UserObjects ],
       "nextCursor": "65a1..."
     }
 
 2. SEARCH USERS
    GET /users/search
    Desc: Search for users with extensive filtering capabilities.
-   Query Params:
-     - q: General text search (username, name, bio, city, occupation)
-     - minAge, maxAge: Age range (e.g., 25, 30)
-     - minHeight, maxHeight: Height range (e.g., 160)
-     - religion, community, mother_tongue: Cultural filters
-     - country: Country filter
-     - state, city: Location filters
-     - brothers, sisters: Exact count (e.g., 0, 1)
-     - marital_status: "Never Married", "Divorced", etc.
-     - highest_education, occupation, annual_income: Professional filters
-     - eating_habits, smoking_habits, drinking_habits: Lifestyle
-     - land_component: Text match (Deprecated) OR use Range below
-     - minLandArea, maxLandArea: Land area range (e.g. 5, 20 for 5-20 units)
-     - property_type: Property filter (e.g., "Agricultural")
-     - sortBy: "created_at" (default), "age_asc", "age_desc"
-     - page: 1 (default)
-     - limit: 20 (default)
+   
+   Query Params (All Optional):
+     - q: General text search (name, bio, city, occupation)
+     
+     // Personal
+     - minAge, maxAge: Number
+     - gender: Male | Female
+     - minHeight, maxHeight: Number (cm or ft string)
+     - marital_status: "Never Married" | "Divorced" ...
+     - religion: String
+     - community: String
+     - mother_tongue: String
+     
+     // Location
+     - country: String
+     - state: String
+     - city: String
+     
+     // Professional
+     - highest_education: String
+     - occupation: String
+     - annual_income: String
+     
+     // Lifestyle
+     - eating_habits: Veg | Non-Veg
+     - smoking_habits: Yes | No
+     - drinking_habits: Yes | No
+     
+     // Family
+     - brothers: Number
+     - sisters: Number
+     
+     // Property (Special)
+     - property_type: String
+     - minLandArea, maxLandArea: Number
+     
+     // Sorting & Paging
+     - sortBy: "created_at" (default) | "age_asc" | "age_desc"
+     - page: Number (Default 1)
+     - limit: Number (Default 20)
 
    Response (200 OK):
    {
       "success": true,
-      "data": [
-        {
-          "_id": "...",
-          "username": "bob",
-          "displayName": "Bob Builder",
-          "profilePhoto": "...",
-          "age": 28,
-          "religion": "Christian",
-          "city": "Mumbai",
-          "occupation": "Engineer",
-          "land_area": "10 Acres"
-        }
-      ],
-      "pagination": {
-        "total": 50,
-        "page": 1,
-        "pages": 3
-      }
+      "data": [ ...UserObjects (Summary View: _id, username, displayName, age, city, occupation, profilePhoto) ],
+      "pagination": { "total": 50, "page": 1, "pages": 3 }
    }
 
 3. GET USER PROFILE
    GET /users/:username
    Desc: Get full details of a specific user.
    
-   Response (200 OK):
-   {
-     "_id": "...",
-     "first_name": "Alice",
-     "last_name": "Wonder",
-     "about_me": "...",
-     "profilePhoto": "https://... (Signed URL)",
-     "photos": [ 
-        { "url": "https://... (Signed)", "key": "...", "isProfile": true } 
-     ]
-   }
+   Response (200 OK): UserObject
+   Error (404): { "message": "User not found", "code": "USER_NOT_FOUND" }
+   Error (403): { "message": "Suspended/Banned", "code": "USER_BANNED" }
 
 4. UPLOAD PHOTOS
    POST /users/upload-photos
-   Desc: Upload up to 10 photos to the user's gallery.
+   Desc: Upload photos to user gallery. Max 10 photos total allowed per user.
    Content-Type: multipart/form-data
    
    Body:
-     - photos: [Binary File Data]
+     - photos: [Binary File Data] (Max 10MB per file)
 
    Response (200 OK):
    {
      "success": true,
-     "message": "Photos uploaded",
-      "data": [
-        { 
-           "_id": "65b...",
-           "url": "https://... (Signed S3 URL)", 
-           "key": "weddingzon/users/.../uuid_orig.webp",
-           "isProfile": true, 
-           "order": 0,
-           "uploadedAt": "2024-01-15T..."
-        },
-        { 
-           "_id": "65c...",
-           "url": "https://... (Signed S3 URL)", 
-           "isProfile": false,
-           "order": 1
-        }
-      ]
+     "message": "Photos uploaded successfully",
+     "data": [ ...Updated Photo Array ],
+     "errors": [ { "filename": "bad.exe", "error": "Invalid Type" } ]
    }
-   
-   Note: The first photo uploaded (if none exist) is automatically set as the profile photo.
 
 6. SET PROFILE PHOTO
    PATCH /users/photos/:photoId/set-profile
-   Desc: Set a specific photo as the main profile photo. Moves it to index 0.
+   Desc: Set a photo as main profile photo (Moves to index 0).
 
-   Response (200 OK):
-   {
-     "success": true,
-     "data": [ ...updated photo list with new order... ]
-   }
+   Response (200 OK): { "success": true, "data": [ ...Photos ] }
 
-7. UPDATE LOCATION
+7. UPDATE LOCATION // TODO: Verify if implemented
    PATCH /users/location
-   Desc: Update the user's current GPS location.
-   
-   Request Body:
-   {
-     "latitude": 26.45,
-     "longitude": 80.33
-   }
+   Body: { "latitude": 26.45, "longitude": 80.33 }
 
-   Response (200 OK):
-   {
-     "message": "Location updated",
-     "location": { "type": "Point", "coordinates": [...] }
-   }
-
-8. GET NEARBY USERS (MAP)
+8. GET NEARBY USERS
    GET /users/nearby
-   Desc: Find users within a specific radius.
+   Query: ?latitude=...&longitude=...&radius=50
    
-   Query Params:
-     - latitude: 26.45
-     - longitude: 80.33
-     - radius: 50 (in km, default 50)
-
-   Response (200 OK):
-   {
-     "count": 5,
-     "users": [
-       {
-         "_id": "...",
-         "username": "...",
-         "location": { "coordinates": [lng, lat] }, // Jittered/Fuzzed for privacy (~500m accuracy)
-         "distance": 4321.5, // Meters
-         "profilePhoto": "https://... (Signed S3 URL)"
-       }
-     ]
-   }
-
+   Response (200 OK): { "count": 5, "users": [ ... ] }
 
 9. RECORD PROFILE VIEW
    POST /users/view/:userId
-   Desc: Record a view on a user's profile.
-   
-   Response (200 OK):
-   {
-     "success": true,
-     "message": "View recorded"
-   }
-   
-   Note: Limits to 1 view per pair per day.
+   Desc: Record a view (Max 1 per day per user).
+   Response (200 OK): { "success": true }
 
 10. GET PROFILE VIEWERS
     GET /users/viewers
-    Desc: Get list of users who viewed your profile (Max 10).
-    
-    Response (200 OK):
-    {
-      "success": true,
-      "data": [
-        {
-          "viewer": {
-            "_id": "65b...",
-            "username": "visiting_user",
-            "profilePhoto": "https://... (Signed URL)"
-          },
-          "viewedAt": "2024-01-20T..."
-        }
-      ]
-    }
+    Response (200 OK): { "success": true, "data": [ { "viewer": UserSummary, "viewedAt": Date } ] }
+
 
 
 ================================================================================
@@ -556,65 +498,82 @@ Error (4xx/5xx):
 ================================================================================
                                 ADMINISTRATIVE
 ================================================================================
-(Requires `admin_role`: 'admin' or 'superadmin')
-
-1. LIST USERS
-   GET /admin/users
-   Query Params:
-     - page: 1
-     - limit: 10
-     - search: "john"
-     - role: "bride" (or 'all')
-     - sortBy: "created_at"
-   
-   Response (200 OK):
-   {
-     "success": true,
-     "data": [ ... ],
-     "pagination": { "total": 150, "page": 1, "pages": 15 }
-   }
-
-2. SYSTEM STATISTICS
-   GET /admin/stats
-   Desc: Dashboard metrics.
-   
-   Response (200 OK):
-   {
-     "success": true,
-     "totalUsers": 1250,
-     "totalRevenue": 50000,
-     "activeUsers": 300
-   }
-
-3. MANAGE COSTS
-   GET /admin/cost
-   POST /admin/cost
-   Desc: Manage operational costs.
-
-4. MANAGE PHOTO REQUESTS
-   GET /admin/photo-access/requests
-   Desc: View all pending photo access requests requiring moderation.
-
-5. APPROVE/REJECT REQUEST (Admin Override)
-   PATCH /admin/photo-access/requests/:id
-   
-   Request Body:
-   {
-     "status": "granted" | "rejected"
-   }
-
-6. USER MANAGEMENT (BAN/ROLE)
-   PATCH /admin/users/:id/status
-   Body: { "status": "banned" }
-
-   PATCH /admin/users/:id/role
-   Body: { "role": "admin" }
-
-   DELETE /admin/users/:id
-   Desc: Soft delete a user.
-
-
+                                ADMINISTRATIVE
 ================================================================================
+(Requires `admin_role`: 'admin' or 'super_admin')
+
+1. USER MANAGEMENT
+   GET /admin/users
+   Desc: List users with search and filters.
+   Query Params:
+     - page: Number
+     - limit: Number
+     - search: String (Name, Email, Phone, Username)
+     - role: 'user' | 'vendor' | 'franchise' | 'admin' | 'all'
+     - sortBy: Field name (default 'created_at')
+     - sortOrder: 'asc' | 'desc' (default 'desc')
+
+   Response (200 OK):
+   {
+     "success": true,
+     "data": [ ...UserObjects ],
+     "pagination": { "total": 100, "page": 1, "pages": 10 }
+   }
+
+2. GET USER DETAILS
+   GET /admin/users/:id
+
+3. UPDATE USER STATUS (Ban/Suspend)
+   PATCH /admin/users/:id/status
+   Body: { "status": "active" | "banned" | "suspended" }
+
+4. UPDATE USER ROLE
+   PATCH /admin/users/:id/role
+   Body: { "role": "admin" | "user" } (Promotes/Demotes admin privileges)
+
+5. DELETE USER
+   DELETE /admin/users/:id
+
+6. VENDOR MANAGEMENT
+   GET /admin/vendors
+   Query: ?status=pending_approval | active | rejected
+   
+   PATCH /admin/vendors/:id/status
+   Body: { "status": "active" | "rejected" }
+
+7. FRANCHISE MANAGEMENT
+   GET /admin/franchises/requests
+   Desc: Get pending franchise approvals.
+   
+   PATCH /admin/franchises/:id/approve
+   Body: { "status": "active" | "rejected" }
+
+8. REPORT MANAGEMENT
+   GET /admin/reports
+   Query: ?status=pending | resolved | dismissed
+   
+   PATCH /admin/reports/:id
+   Body: { "status": "resolved", "adminNotes": "..." }
+
+9. PHOTO ACCESS MODERATION
+   GET /admin/photo-access/requests
+   
+   PATCH /admin/photo-access/requests/:id
+   Body: { "status": "granted" | "rejected" }
+
+10. SYSTEM STATS
+    GET /admin/stats
+    Response: { "totalUsers": 100, "activeUsers": 50, "totalRevenue": 0, ... }
+
+11. SEND PUSH NOTIFICATION
+    POST /admin/send-push
+    Body:
+    {
+      "title": "String",
+      "body": "String",
+      "userId": "ObjectId (Optional - Leave empty to broadcast to ALL)"
+    }
+
                                 CHAT & MESSAGING
 ================================================================================
 
@@ -702,47 +661,169 @@ SOCKET.IO EVENTS (Real-time)
   }
 
 
-*** DYNAMIC FILTERS ***
-GET /api/filters
-- Returns: { success: true, data: [FilterConfig] }
-- Description: Get visible filters for frontend rendering.
+================================================================================
+                                DYNAMIC FILTERS
+================================================================================
 
-GET /api/filters/admin (Admin Only)
-- Returns: { success: true, data: [FilterConfig] }
-- Description: Get all filters for management.
+1. GET FILTERS (Public)
+   GET /api/filters
+   Desc: Get visible filters for frontend rendering.
+   Response (200 OK): { "success": true, "data": [FilterConfig] }
 
-POST /api/filters (Admin Only)
-- Body: { label, key, type, options, order, section }
-- Returns: { success: true, data: FilterConfig }
+2. GET ALL FILTERS (Admin)
+   GET /api/filters/admin
+   Response: { "success": true, "data": [FilterConfig] }
 
-PUT /api/filters/:id (Admin Only)
-- Body: { ...updates }
-- Returns: { success: true, data: FilterConfig }
+3. CREATE FILTER
+   POST /api/filters
+   Body: { "label": "String", "key": "String", "type": "text|select...", "options": [], "section": "Basic" }
 
-DELETE /api/filters/:id (Admin Only)
-- Returns: { success: true }
+4. UPDATE FILTER
+   PUT /api/filters/:id
+   Body: { ...updates }
 
-
-*** USER SAFETY & MANAGEMENT ***
-POST /users/block
-- Body: { "targetUsername": "alice" }
-- Returns: { success: true, message: "User blocked" }
-
-POST /users/unblock
-- Body: { "targetUsername": "alice" }
-- Returns: { success: true, message: "User unblocked" }
-
-POST /users/report
-- Body: { "targetUsername": "alice", "reason": "Spam", "description": "..." }
-- Returns: { success: true, message: "User reported" }
-
-DELETE /connections/delete
-- Body: { "targetUsername": "alice" }
-- Returns: { success: true, message: "Connection deleted" }
+5. DELETE FILTER
+   DELETE /api/filters/:id
 
 
-*** FRANCHISE & PDF ***
-GET /franchise/custom-matches/:profileId/pdf
-- Query: ?language=english (or hindi/marathi)
-- Returns: PDF File Download
-- Description: Generates a PDF of matches tailored for the specific profile.
+================================================================================
+                            USER SAFETY & MANAGEMENT
+================================================================================
+
+1. BLOCK USER
+   POST /users/block
+   Body: { "targetUsername": "alice" }
+   Response: { "success": true, "message": "User blocked" }
+
+2. UNBLOCK USER
+   POST /users/unblock
+   Body: { "targetUsername": "alice" }
+
+3. REPORT USER
+   POST /users/report
+   Body: { "targetUsername": "alice", "reason": "Spam", "description": "..." }
+
+4. REMOVE CONNECTION
+   DELETE /connections/delete
+   Body: { "targetUsername": "alice" }
+
+
+
+================================================================================
+                                   FRANCHISE
+================================================================================
+(Base URL: /franchise)
+
+1. SUBMIT PAYMENT (Mock)
+   POST /franchise/payment
+   Desc: Submit payment to request activation.
+   Body: {} (No body required for mock)
+   Response (200 OK): { "success": true, "message": "Payment successful" }
+
+2. CREATE MEMBER PROFILE
+   POST /franchise/profiles
+   Desc: Create a new profile (member) managed by this franchise.
+   
+   Body (Required):
+   {
+     "first_name": "String",
+     "last_name": "String",
+     "gender": "Male | Female",
+     "dob": "Date (YYYY-MM-DD)",
+     "religion": "String",
+     "community": "String",
+     "phone": "String (Unique)",
+     "email": "String (Unique, Optional)",
+     "password": "String (Optional, autogenerated if not provided)"
+   }
+
+   Response (201 Created):
+   {
+     "success": true,
+     "credentials": { "username": "...", "password": "..." },
+     "profile": { ...UserObject }
+   }
+
+3. GET ALL MANAGED PROFILES
+   GET /franchise/profiles
+   Desc: List all users created by this franchise.
+   Response (200 OK): { "success": true, "profiles": [ ...UserObjects ] }
+
+4. GET MEMBER PROFILE
+   GET /franchise/profiles/:profileId
+   Response (200 OK): UserObject
+
+5. UPDATE MEMBER PROFILE
+   PATCH /franchise/profiles/:profileId
+   Desc: Update details for a member managed by you.
+   
+   Body (Any allowed field):
+   {
+     "first_name": "John",
+     "bio": "Updated bio...",
+     "city": "Mumbai",
+     "occupation": "Engineer",
+     "annual_income": "10-20 LPA",
+     "marital_status": "Never Married",
+     "height": "5ft 10in",
+     "education": "B.Tech"
+     // ...any other non-critical User field
+   }
+
+6. UPLOAD MEMBER PHOTOS
+   POST /franchise/profiles/:profileId/photos
+   Desc: Upload photos for a specific member.
+   Content-Type: multipart/form-data
+   Body: { "photos": [File] }
+
+7. SET MEMBER PROFILE PHOTO
+   PATCH /franchise/profiles/:profileId/photos/:photoId/set-profile
+
+8. DELETE MEMBER PHOTO
+   DELETE /franchise/profiles/:profileId/photos/:photoId
+
+9. UPDATE MATCH PREFERENCES
+   PATCH /franchise/match-prefs/:profileId
+   Desc: Set the partner preferences for a member.
+   
+   Body:
+   {
+     "preferences": {
+       "minAge": 25, 
+       "maxAge": 30,
+       "religion": "Hindu",
+       "community": "Any",
+       "location": "Mumbai",
+       "marital_status": "Never Married",
+       "eating_habits": "Veg",
+       "smoking_habits": "No",
+       "drinking_habits": "No",
+       "highest_education": "Any",
+       "annual_income": "Any"
+     }
+   }
+
+10. DOWNLOAD MATCH PDF
+    GET /franchise/custom-matches/:profileId/pdf
+    Desc: Generate and download a PDF of potential matches based on preferences.
+    Response: Binary PDF File (Content-Type: application/pdf)
+
+
+
+================================================================================
+                                  NOTIFICATIONS
+================================================================================
+(Base URL: /api/notifications)
+
+1. REGISTER TOKEN
+   POST /notifications/register-token
+   Desc: Register a device FCM token for push notifications.
+   Body: { "token": "FCM_TOKEN..." }
+   Response (200 OK): { "success": true, "message": "Token registered" }
+
+2. UNREGISTER TOKEN
+   POST /notifications/unregister-token
+   Desc: Remove a device token (e.g. on logout).
+   Body: { "token": "..." }
+   Response (200 OK): { "success": true, "message": "Token unregistered" }
+

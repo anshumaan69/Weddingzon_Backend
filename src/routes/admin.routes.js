@@ -28,6 +28,10 @@ router.post('/send-push', require('../controllers/admin.controller').sendPush);
 router.get('/franchises/requests', require('../controllers/admin.controller').getFranchiseRequests);
 router.patch('/franchises/:id/approve', require('../controllers/admin.controller').approveFranchise);
 
+// Vendor Management
+router.get('/vendors', require('../controllers/admin.controller').getVendors);
+router.patch('/vendors/:id/status', require('../controllers/admin.controller').updateVendorStatus);
+
 // Report Management
 router.get('/reports', getReports);
 router.patch('/reports/:id', updateReportStatus);

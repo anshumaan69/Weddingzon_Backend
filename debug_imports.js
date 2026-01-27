@@ -12,5 +12,5 @@ try {
     console.log('✅ socket/index loaded');
 
 } catch (e) {
-    console.error('❌ ERROR:', e);
+    console.error('❌ ERROR is :', e);
 }

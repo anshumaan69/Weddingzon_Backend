@@ -114,3 +114,23 @@ Create a `DioService` singleton.
 ## 6. Franchise Features
 -   **PDF Generation**: If user role is `franchise`, show "Generate PDF" button on profiles.
 -   **Action**: Call `GET /franchise/custom-matches/:id/pdf`. Open URL in external browser or PDF viewer.
+
+## 7. Vendor Features (New)
+### A. Vendor Dashboard
+1.  **Check Role**: If `user.role == 'vendor'`, show Vendor Dashboard instead of Feed.
+2.  **Stats**: Show total products (API: `GET /products/my/products`).
+3.  **Product List**: Fetch and display vendor's products.
+    -   Edit/Delete options per item.
+
+### B. Product Management
+1.  **Add Product**:
+    -   Form: Name, Category, Price, Description.
+    -   Images: Use `POST /api/uploads` (Generic) OR `POST /users/upload-photos` (if generic not available, but generic is preferred).
+    -   Submit: `POST /products`.
+2.  **Edit Product**: `PATCH /products/:id`.
+
+### C. Marketplace (User Side)
+1.  **Shop Tab**: New main tab for Members/Users.
+2.  **UI**: Grid of products with Search & Filter (Category, Price).
+3.  **API**: `GET /products?category=...&price=...`.
+4.  **Detail View**: Show images, price, description, and "Contact Vendor" button (Lead to Chat).

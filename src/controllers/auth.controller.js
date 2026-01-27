@@ -408,6 +408,20 @@ exports.registerDetails = async (req, res) => {
                 ...req.body.franchise_details
             };
         }
+
+        // Vendor Details - Only if role is vendor
+        if (role === 'vendor') {
+            if (req.body.vendor_details) {
+                user.vendor_details = {
+                    ...user.vendor_details,
+                    ...req.body.vendor_details
+                };
+            }
+            // Set default status if not set
+            if (!user.vendor_status) {
+                user.vendor_status = 'pending_approval';
+            }
+        }
         if (dob) {
             user.dob = dob;
             // Age Validation

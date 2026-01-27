@@ -138,3 +138,36 @@ The backend uses standard HTTP codes:
 -   `401 Unauthorized`: Token invalid/expired. -> **Redirect to Login**.
 -   `400 Bad Request`: Validation error (e.g., File too large). -> **Show SnackBar**.
 -   `500 Server Error`: Backend crash. -> **Show generic error**.
+
+## 6. Vendor & E-commerce Integration
+### A. Role Handling
+Before navigating to Home/Feed, check `user.role`.
+-   If `role == 'vendor'`, navigate to **VendorDashboard**.
+-   If `role == 'member'/'user'`, navigate to **MainApp** (Home, Search, Shop, Profile).
+
+### B. Vendor Dashboard
+-   **Fetch Products**: use `GET /products/my/products`.
+-   **Add Product**:
+    1.  Pick Images.
+    2.  Upload Images via `POST /api/uploads` (Multipart key: 'photo'). Returns `{ url: "..." }`.
+    3.  Collect URL.
+    4.  Call `POST /products` with JSON body:
+        ```json
+        {
+          "name": "Lens",
+          "price": 500,
+          "category": "Photography",
+          "description": "...",
+          "images": ["url1"]
+        }
+        ```
+
+### C. Shop Screen (For Members)
+-   **Endpoint**: `GET /products`
+-   **Filters**:
+    -   `category`: Dropdown (Clothing, Jewelry, etc.)
+    -   `search`: Text field
+    -   `minPrice`/`maxPrice`: Range slider
+-   **Card UI**: Show Image[0], Name, Price, Vendor Name (`item.vendor.vendor_details.business_name`).
+-   **Tap**: Navigate to Detail Screen.
+

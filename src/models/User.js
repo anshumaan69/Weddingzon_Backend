@@ -68,6 +68,21 @@ const userSchema = new mongoose.Schema(
             state: { type: String },
             pincode: { type: String },
         },
+        vendor_status: {
+            type: String,
+            enum: ['pending_approval', 'active', 'rejected', null],
+            default: null,
+        },
+        vendor_details: {
+            business_name: { type: String },
+            service_type: { type: String }, // e.g., 'Catering', 'Photography'
+            business_address: { type: String },
+            city: { type: String },
+            state: { type: String },
+            description: { type: String },
+            price_range: { type: String }, // e.g. '$$-$$$'
+            experience_years: { type: Number },
+        },
         created_by: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',

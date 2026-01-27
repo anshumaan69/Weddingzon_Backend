@@ -65,6 +65,76 @@ exports.getUsers = async (req, res) => {
     }
 };
 
+// @desc    Get Vendors (Pending/Active/Rejected)
+// @route   GET /api/admin/vendors
+// @access  Private/Admin
+exports.getVendors = async (req, res) => {
+    try {
+        const { status = 'pending_approval', page = 1, limit = 10, search = '' } = req.query;
+        const query = { role: 'vendor', vendor_status: status };
+
+        if (search) {
+            query.$or = [
+                { 'vendor_details.business_name': { $regex: search, $options: 'i' } },
+                { first_name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const vendors = await User.find(query)
+            .sort({ created_at: -1 })
+            .limit(limit * 1)
+            .skip((page - 1) * limit)
+            .select('-password');
+
+        const count = await User.countDocuments(query);
+
+        res.status(200).json({
+            success: true,
+            data: vendors,
+            totalPages: Math.ceil(count / limit),
+            currentPage: Number(page),
+            totalVendors: count
+        });
+
+    } catch (error) {
+        logger.error('Get Vendors Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Update Vendor Status (Approve/Reject)
+// @route   PATCH /api/admin/vendors/:id/status
+// @access  Private/Admin
+exports.updateVendorStatus = async (req, res) => {
+    try {
+        const { status } = req.body; // 'active', 'rejected'
+        const { id } = req.params;
+
+        // Find user
+        const vendor = await User.findById(id);
+        if (!vendor || vendor.role !== 'vendor') {
+            return res.status(404).json({ message: 'Vendor not found' });
+        }
+
+        vendor.vendor_status = status;
+
+        // If approving, also set main account status to active if it wasn't
+        if (status === 'active') {
+            vendor.status = 'active';
+        }
+
+        await vendor.save();
+
+        logger.info(`Vendor ${id} status updated to ${status} by ${req.user.username}`);
+        res.status(200).json({ success: true, message: `Vendor ${status} successfully`, data: vendor });
+
+    } catch (error) {
+        logger.error('Update Vendor Status Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 // @desc    Get Emails by Role (For Bulk Email)
 // @route   GET /api/admin/emails
 // @access  Private/Admin
