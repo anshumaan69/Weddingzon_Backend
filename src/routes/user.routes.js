@@ -4,7 +4,7 @@ const { getFeed, uploadPhotos, getUserProfile, blockUser, unblockUser, reportUse
 const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } });
-const { protect, optionalAuth } = require('../middlewares/authMiddleware');
+const { protect, optionalAuth, authorize } = require('../middlewares/authMiddleware');
 const { ensureProfileComplete } = require('../middlewares/profileMiddleware');
 
 // === Specific Routes FIRST ===
@@ -13,8 +13,8 @@ const { ensureProfileComplete } = require('../middlewares/profileMiddleware');
 router.get('/:username/public-preview', require('../controllers/user.controller').getPublicProfilePreview);
 
 // Protected Specific Routes (Explicit protect to avoid ordering issues with router.use)
-router.get('/search', protect, ensureProfileComplete, require('../controllers/user.controller').searchUsers);
-router.get('/feed', protect, ensureProfileComplete, getFeed);
+router.get('/search', protect, authorize('member', 'bride', 'groom', 'admin', 'franchise'), ensureProfileComplete, require('../controllers/user.controller').searchUsers);
+router.get('/feed', protect, authorize('member', 'bride', 'groom', 'admin', 'franchise'), ensureProfileComplete, getFeed);
 router.patch('/location', protect, require('../controllers/user.controller').updateLocation);
 router.get('/nearby', protect, ensureProfileComplete, require('../controllers/user.controller').getNearbyUsers);
 router.post('/upload-photos', protect, upload.array('photos', 10), uploadPhotos);

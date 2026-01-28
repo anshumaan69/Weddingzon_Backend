@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const franchiseController = require('../controllers/franchise.controller');
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, authorize } = require('../middlewares/authMiddleware');
+
+router.use(protect);
+router.use(authorize('franchise', 'admin'));
 
 // IMPORTANT: We need multer for upload
 const multer = require('multer');

@@ -1,0 +1,520 @@
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "6974f39cdcd6ff13e0822c59",
+      "label": "Age Range",
+      "key": "age",
+      "type": "range",
+      "options": [],
+      "order": 2,
+      "section": "Basic",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.822Z",
+      "updatedAt": "2026-01-24T16:30:20.822Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c5a",
+      "label": "Gender",
+      "key": "gender",
+      "type": "select",
+      "options": [
+        "Male",
+        "Female",
+        "Other"
+      ],
+      "order": 3,
+      "section": "Basic",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.822Z",
+      "updatedAt": "2026-01-24T16:30:20.822Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c5b",
+      "label": "Marital Status",
+      "key": "marital_status",
+      "type": "select",
+      "options": [
+        "Any",
+        "Never Married",
+        "Divorced",
+        "Widowed",
+        "Awaiting Divorce"
+      ],
+      "order": 4,
+      "section": "Basic",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.822Z",
+      "updatedAt": "2026-01-24T16:30:20.822Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c5c",
+      "label": "Profile Created For",
+      "key": "created_for",
+      "type": "select",
+      "options": [
+        "Self",
+        "Parent",
+        "Sibling",
+        "Relative",
+        "Friend",
+        "Marriage Bureau"
+      ],
+      "order": 5,
+      "section": "Basic",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.822Z",
+      "updatedAt": "2026-01-24T16:30:20.822Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c5d",
+      "label": "Height",
+      "key": "height",
+      "type": "select",
+      "options": [
+        "4'0\"",
+        "4'5\"",
+        "5'0\"",
+        "5'5\"",
+        "6'0\"",
+        "6'5\""
+      ],
+      "order": 6,
+      "section": "Basic",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.822Z",
+      "updatedAt": "2026-01-24T16:30:20.822Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c5e",
+      "label": "Mother Tongue",
+      "key": "mother_tongue",
+      "type": "select",
+      "options": [
+        "Hindi",
+        "English",
+        "Punjabi",
+        "Bengali",
+        "Marathi",
+        "Tamil",
+        "Telugu",
+        "Gujarati",
+        "Urdu"
+      ],
+      "order": 7,
+      "section": "Basic",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "697932ea4f014bba30d85095",
+      "label": "chamak challo",
+      "key": "age \"",
+      "type": "select",
+      "options": [
+        "F",
+        "U",
+        "C",
+        "K",
+        "U"
+      ],
+      "order": 7,
+      "section": "Other",
+      "isVisible": true,
+      "createdAt": "2026-01-27T21:49:30.466Z",
+      "updatedAt": "2026-01-27T21:49:30.466Z",
+      "__v": 0
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c5f",
+      "label": "Disability",
+      "key": "disability",
+      "type": "select",
+      "options": [
+        "None",
+        "Physical",
+        "Mental",
+        "Other"
+      ],
+      "order": 8,
+      "section": "Basic",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c60",
+      "label": "Country",
+      "key": "country",
+      "type": "text",
+      "options": [],
+      "order": 10,
+      "section": "Location",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c61",
+      "label": "State",
+      "key": "state",
+      "type": "text",
+      "options": [],
+      "order": 11,
+      "section": "Location",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c62",
+      "label": "City",
+      "key": "city",
+      "type": "text",
+      "options": [],
+      "order": 12,
+      "section": "Location",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c63",
+      "label": "Family Type",
+      "key": "family_type",
+      "type": "select",
+      "options": [
+        "Joint",
+        "Nuclear"
+      ],
+      "order": 20,
+      "section": "Family",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c64",
+      "label": "Family Status",
+      "key": "family_status",
+      "type": "select",
+      "options": [
+        "Middle Class",
+        "Upper Middle Class",
+        "Rich",
+        "Affluent"
+      ],
+      "order": 21,
+      "section": "Family",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c65",
+      "label": "Family Values",
+      "key": "family_values",
+      "type": "select",
+      "options": [
+        "Orthodox",
+        "Traditional",
+        "Moderate",
+        "Liberal"
+      ],
+      "order": 22,
+      "section": "Family",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c66",
+      "label": "Brothers",
+      "key": "brothers",
+      "type": "number",
+      "options": [],
+      "order": 23,
+      "section": "Family",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c67",
+      "label": "Sisters",
+      "key": "sisters",
+      "type": "number",
+      "options": [],
+      "order": 24,
+      "section": "Family",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c68",
+      "label": "Highest Education",
+      "key": "highest_education",
+      "type": "select",
+      "options": [
+        "High School",
+        "Bachelors",
+        "Masters",
+        "Doctorate"
+      ],
+      "order": 30,
+      "section": "Education",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c69",
+      "label": "Occupation",
+      "key": "occupation",
+      "type": "text",
+      "options": [],
+      "order": 31,
+      "section": "Education",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c6a",
+      "label": "Employed In",
+      "key": "employed_in",
+      "type": "select",
+      "options": [
+        "Private",
+        "Government",
+        "Business",
+        "Defence",
+        "Self Employed"
+      ],
+      "order": 32,
+      "section": "Education",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c6b",
+      "label": "Annual Income",
+      "key": "annual_income",
+      "type": "select",
+      "options": [
+        "0-5 LPA",
+        "5-10 LPA",
+        "10-20 LPA",
+        "20-50 LPA",
+        "50+ LPA"
+      ],
+      "order": 33,
+      "section": "Education",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c6c",
+      "label": "Religion",
+      "key": "religion",
+      "type": "select",
+      "options": [
+        "Hindu",
+        "Muslim",
+        "Christian",
+        "Sikh",
+        "Jain",
+        "Buddhist",
+        "Parsi",
+        "Jewish",
+        "Other"
+      ],
+      "order": 40,
+      "section": "Religious",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c6d",
+      "label": "Community",
+      "key": "community",
+      "type": "text",
+      "options": [],
+      "order": 41,
+      "section": "Religious",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c6e",
+      "label": "Sub Community",
+      "key": "sub_community",
+      "type": "text",
+      "options": [],
+      "order": 42,
+      "section": "Religious",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c6f",
+      "label": "Diet (Eating Habits)",
+      "key": "eating_habits",
+      "type": "select",
+      "options": [
+        "Vegetarian",
+        "Non-Vegetarian",
+        "Eggetarian"
+      ],
+      "order": 50,
+      "section": "Lifestyle",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c70",
+      "label": "Smoking Habits",
+      "key": "smoking_habits",
+      "type": "select",
+      "options": [
+        "No",
+        "Yes",
+        "Occasionally"
+      ],
+      "order": 51,
+      "section": "Lifestyle",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c71",
+      "label": "Drinking Habits",
+      "key": "drinking_habits",
+      "type": "select",
+      "options": [
+        "No",
+        "Yes",
+        "Occasionally"
+      ],
+      "order": 52,
+      "section": "Lifestyle",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c72",
+      "label": "Appearance",
+      "key": "appearance",
+      "type": "select",
+      "options": [
+        "Fair",
+        "Wheatish",
+        "Dusky"
+      ],
+      "order": 53,
+      "section": "Lifestyle",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c73",
+      "label": "Living Status",
+      "key": "living_status",
+      "type": "select",
+      "options": [
+        "Living with Family",
+        "Living Alone"
+      ],
+      "order": 54,
+      "section": "Lifestyle",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c74",
+      "label": "Physical Status",
+      "key": "physical_status",
+      "type": "select",
+      "options": [
+        "Normal",
+        "Physically Challenged"
+      ],
+      "order": 55,
+      "section": "Lifestyle",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c75",
+      "label": "Property Type",
+      "key": "property_type",
+      "type": "select",
+      "options": [
+        "Residential",
+        "Commercial",
+        "Agricultural",
+        "Industrial"
+      ],
+      "order": 60,
+      "section": "Property",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    },
+    {
+      "_id": "6974f39cdcd6ff13e0822c76",
+      "label": "Land Area (Acres)",
+      "key": "land_area",
+      "type": "range",
+      "options": [],
+      "order": 61,
+      "section": "Property",
+      "isVisible": true,
+      "__v": 0,
+      "createdAt": "2026-01-24T16:30:20.823Z",
+      "updatedAt": "2026-01-24T16:30:20.823Z"
+    }
+  ]
+}

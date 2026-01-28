@@ -1,0 +1,13 @@
+{
+  "bucket": "hoocai",
+  "region": "ap-south-1",
+  "mainKeyPrefix": "AKIAV",
+  "chatKeyPrefix": "AKIAV",
+  "error": {
+    "name": "AccessDenied",
+    "message": "User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:ListBucket on resource: \"arn:aws:s3:::hoocai\" because no identity-based policy allows the s3:ListBucket action",
+    "code": "AccessDenied",
+    "requestId": "D5MQXMM6K84JTX07"
+  },
+  "success": false
+}

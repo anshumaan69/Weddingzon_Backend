@@ -63,4 +63,18 @@ const optionalAuth = async (req, res, next) => {
     }
 };
 
-module.exports = { protect, admin, optionalAuth };
+const authorize = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+        if (!roles.includes(req.user.role) && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+            return res.status(403).json({
+                message: `User role ${req.user.role} is not authorized to access this route`
+            });
+        }
+        next();
+    };
+};
+
+module.exports = { protect, admin, optionalAuth, authorize };

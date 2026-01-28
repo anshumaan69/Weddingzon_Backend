@@ -1,0 +1,11 @@
+--- S3 Verification V2 ---
+Region: ap-south-1
+Bucket: hoocai
+AWS_ACCESS_KEY_ID Present: true
+AWS_CHAT_ACCESS_KEY_ID Present: true
+WARNING: AWS_CHAT_ACCESS_KEY_ID is present and might override main keys in current config.
+
+Testing ListObjects on Main Bucket...
+Error: AccessDenied
+Message: User: arn:aws:iam::378788317386:user/hoocai-weddingzon-chat-image-uploader is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::hoocai" because no identity-based policy allows the s3:ListBucket action
+Code: AccessDenied

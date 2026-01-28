@@ -1,0 +1,12 @@
+{
+  "bucket": "hoocai",
+  "permission": {
+    "put": false,
+    "get": false
+  },
+  "error": {
+    "name": "AccessDenied",
+    "message": "User: arn:aws:iam::378788317386:user/hoocai-s3-img-uploader-blur+raw is not authorized to perform: s3:PutObject on resource: \"arn:aws:s3:::hoocai/debug_test_1769637804717.txt\" because no identity-based policy allows the s3:PutObject action",
+    "command": "Unknown"
+  }
+}
