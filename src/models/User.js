@@ -57,7 +57,7 @@ const userSchema = new mongoose.Schema(
         },
         franchise_status: {
             type: String,
-            enum: ['pending_payment', 'pending_approval', 'active', 'rejected', null],
+            enum: ['pending_payment', 'pending_approval', 'active', 'rejected', null, ''],
             default: null,
         },
         franchise_details: {
@@ -70,7 +70,7 @@ const userSchema = new mongoose.Schema(
         },
         vendor_status: {
             type: String,
-            enum: ['pending_approval', 'active', 'rejected', null],
+            enum: ['pending_approval', 'active', 'rejected', null, ''],
             default: null,
         },
         vendor_details: {

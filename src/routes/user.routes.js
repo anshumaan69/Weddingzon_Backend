@@ -3,7 +3,7 @@ const router = express.Router();
 const { getFeed, uploadPhotos, getUserProfile, blockUser, unblockUser, reportUser } = require('../controllers/user.controller');
 const multer = require('multer');
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage, limits: { fileSize: 100 * 1024 * 1024 } });
+const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } });
 const { protect, optionalAuth } = require('../middlewares/authMiddleware');
 const { ensureProfileComplete } = require('../middlewares/profileMiddleware');
 
@@ -21,11 +21,13 @@ router.post('/upload-photos', protect, upload.array('photos', 10), uploadPhotos)
 
 router.post('/block', protect, blockUser);
 router.post('/unblock', protect, unblockUser);
+router.get('/blocked-users', protect, require('../controllers/user.controller').getBlockedUsers);
 router.post('/report', protect, reportUser);
 
 // Profile Views
 router.post('/view/:userId', protect, require('../controllers/user.controller').recordProfileView);
 router.get('/viewers', protect, require('../controllers/user.controller').getProfileViewers);
+router.post('/viewers/mark-read', protect, require('../controllers/user.controller').markProfileViewsAsRead);
 
 router.patch('/photos/:photoId/set-profile', protect, require('../controllers/user.controller').setProfilePhoto);
 router.delete('/photos/:photoId', protect, require('../controllers/user.controller').deletePhoto);

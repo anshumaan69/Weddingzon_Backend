@@ -42,13 +42,41 @@ exports.sendConnectionRequest = async (req, res) => {
             return res.status(400).json({ message: 'Cannot connect with yourself' });
         }
 
-        const existingRequest = await ConnectionRequest.findOne({
-            requester: requesterId,
-            recipient: targetUserId
-        });
+        const [existingRequest, reverseRequest] = await Promise.all([
+            ConnectionRequest.findOne({
+                requester: requesterId,
+                recipient: targetUserId
+            }),
+            ConnectionRequest.findOne({
+                requester: targetUserId,
+                recipient: requesterId
+            })
+        ]);
 
         if (existingRequest) {
-            return res.status(400).json({ message: 'Request already sent' });
+            if (existingRequest.status === 'accepted') return res.status(400).json({ message: 'Already connected' });
+            if (existingRequest.status === 'pending') return res.status(400).json({ message: 'Request already sent' });
+            // If rejected, we might allow re-sending or block it. Let's allow re-send for now but ensure we update it?
+            // Actually, if it's rejected, existingRequest exists. We should probably update the existing one or delete/recreate.
+            // For simplicity and cleaner history, let's delete the old rejected/cancelled one if we want to allow new.
+            // But usually 'status' check covers it. If we want to allow re-sending after rejection:
+            if (existingRequest.status === 'rejected') {
+                // strict: return res.status(400).json({ message: 'Request was rejected' });
+                // permissive: delete and create new
+                await ConnectionRequest.findByIdAndDelete(existingRequest._id);
+            }
+        }
+
+        if (reverseRequest) {
+            if (reverseRequest.status === 'accepted') {
+                return res.status(400).json({ message: 'You are already connected with this user' });
+            }
+            if (reverseRequest.status === 'pending') {
+                return res.status(400).json({ message: 'This user has already sent you a request. Please accept it.' });
+            }
+            // If reverse is rejected, it means I gathered courage to send request after they rejected me / or I rejected them?
+            // If I rejected them, reverseRequest.status is 'rejected'. Now I want to add them.
+            // We should allow this.
         }
 
         const newRequest = await ConnectionRequest.create({
@@ -465,7 +493,19 @@ exports.getConnections = async (req, res) => {
             };
         }))).filter(Boolean);
 
-        res.status(200).json({ success: true, data: formatted });
+        // Deduplicate based on _id
+        const uniqueConnections = [];
+        const seenIds = new Set();
+
+        for (const conn of formatted) {
+            const idStr = conn._id.toString();
+            if (!seenIds.has(idStr)) {
+                seenIds.add(idStr);
+                uniqueConnections.push(conn);
+            }
+        }
+
+        res.status(200).json({ success: true, data: uniqueConnections });
 
     } catch (error) {
         logger.error('Get Connections Error', { error: error.message });
@@ -638,15 +678,16 @@ exports.deleteConnection = async (req, res) => {
         }
         const targetUserId = targetUser._id.toString();
 
-        // Find and Delete the Connection Request (Accepted)
-        const deletedConn = await ConnectionRequest.findOneAndDelete({
+        // Find and Delete ALL Connection Requests (Accepted, Pending, etc) to ensure clean break
+        // We use deleteMany to catch any potential duplicates or reverse records
+        const result = await ConnectionRequest.deleteMany({
             $or: [
                 { requester: requesterId, recipient: targetUserId, status: 'accepted' },
                 { requester: targetUserId, recipient: requesterId, status: 'accepted' }
             ]
         });
 
-        if (!deletedConn) {
+        if (result.deletedCount === 0) {
             return res.status(404).json({ message: 'Connection not found' });
         }
 

@@ -389,10 +389,10 @@ exports.searchUsers = async (req, res) => {
         if (sisters) query.sisters = parseInt(sisters);
 
         // --- Personal ---
-        if (religion) query.religion = religion;
-        if (community) query.community = community;
-        if (mother_tongue) query.mother_tongue = mother_tongue;
-        if (marital_status) query.marital_status = marital_status;
+        if (religion && religion !== 'Any') query.religion = { $regex: religion, $options: 'i' };
+        if (community) query.community = { $regex: community, $options: 'i' };
+        if (mother_tongue) query.mother_tongue = { $regex: mother_tongue, $options: 'i' };
+        if (marital_status && marital_status !== 'Any') query.marital_status = { $regex: marital_status, $options: 'i' };
 
         // --- Location ---
         if (state) query.state = new RegExp(state, 'i');
@@ -400,14 +400,14 @@ exports.searchUsers = async (req, res) => {
         if (req.query.country) query.country = new RegExp(req.query.country, 'i');
 
         // --- Professional ---
-        if (highest_education) query.highest_education = highest_education;
-        if (annual_income) query.annual_income = annual_income;
+        if (highest_education) query.highest_education = { $regex: highest_education, $options: 'i' };
+        if (annual_income && annual_income !== 'Any') query.annual_income = { $regex: annual_income, $options: 'i' };
         if (occupation) query.occupation = new RegExp(occupation, 'i');
 
         // --- Lifestyle ---
-        if (eating_habits) query.eating_habits = eating_habits;
-        if (smoking_habits) query.smoking_habits = smoking_habits;
-        if (drinking_habits) query.drinking_habits = drinking_habits;
+        if (eating_habits && eating_habits !== 'Any') query.eating_habits = { $regex: eating_habits, $options: 'i' };
+        if (smoking_habits && smoking_habits !== 'Any') query.smoking_habits = { $regex: smoking_habits, $options: 'i' };
+        if (drinking_habits && drinking_habits !== 'Any') query.drinking_habits = { $regex: drinking_habits, $options: 'i' };
 
         // --- Property / Land Filters (Based on User Request) ---
         // Assuming user stores these as strings or arrays in 'property_types' or 'land_area'
@@ -526,9 +526,17 @@ exports.uploadPhotos = async (req, res) => {
 
         const path = require('path');
         // ... inside uploadPhotos ...
+        // Defined allowed types
+        const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
         const processFile = async (file, index) => {
             const fileStart = performance.now();
             try {
+                // Strict MIME Type Validation
+                if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+                    throw new Error('Invalid file type. Only JPG, PNG, and WEBP are allowed.');
+                }
+
                 const fileId = uuidv4();
                 const folderPrefix = 'weedingzon/users';
                 // Get extension from original file or mimetype
@@ -565,11 +573,22 @@ exports.uploadPhotos = async (req, res) => {
                     }
                 };
             } catch (error) {
+                let userMsg = error.message;
+
+                // Map technical errors to user friendly messages
+                if (error.message.includes('Input buffer contains unsupported image format')) {
+                    userMsg = "The image file appears to be corrupted or unsupported.";
+                } else if (error.code === 'EntityTooLarge' || error.message.includes('EntityTooLarge')) {
+                    userMsg = "File is too large. Please upload smaller images.";
+                } else if (error.code === 'AccessDenied') {
+                    userMsg = "Server storage permission error. Please contact support.";
+                }
+
                 logger.error(`File Processing Failed: ${file.originalname}`, { error: error.message });
                 return {
                     success: false,
                     filename: file.originalname,
-                    error: error.message
+                    error: userMsg
                 };
             }
         };
@@ -800,6 +819,7 @@ exports.getPublicProfilePreview = async (req, res) => {
             first_name: userObj.first_name,
             last_name: userObj.last_name, // Maybe hide last name for strict privacy? Let's keep for now.
             profilePhoto: profilePhotoUrl,
+            bio: userObj.bio,
             role: userObj.role,
             exists: true,
             is_profile_complete: userObj.is_profile_complete
@@ -996,13 +1016,30 @@ exports.getProfileViewers = async (req, res) => {
                     profilePhoto: viewer.profilePhoto,
                     bio: viewer.bio
                 },
-                viewedAt: v.viewedAt
+                viewedAt: v.viewedAt,
+                isRead: v.isRead || false
             };
         }));
 
         res.status(200).json({ success: true, data: data.filter(d => d) });
     } catch (error) {
         logger.error('Get Viewers Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Mark Profile Views as Read
+// @route   POST /api/users/viewers/mark-read
+// @access  Private
+exports.markProfileViewsAsRead = async (req, res) => {
+    try {
+        await ProfileView.updateMany(
+            { profileOwner: req.user._id, isRead: false },
+            { $set: { isRead: true } }
+        );
+        res.status(200).json({ success: true, message: 'Marked as read' });
+    } catch (error) {
+        logger.error('Mark Read Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -1282,6 +1319,39 @@ exports.unblockUser = async (req, res) => {
 
     } catch (error) {
         logger.error('Unblock User Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Get Blocked Users
+// @route   GET /api/users/blocked-users
+// @access  Private
+exports.getBlockedUsers = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id)
+            .populate('blockedUsers', 'first_name last_name username profilePhoto');
+
+        // Sign photos if needed (assuming profilePhoto needs signing)
+        // Re-using logic or just sending URL. Usually ProfilePhoto is S3 URL.
+        const blockedList = await Promise.all(user.blockedUsers.map(async (u) => {
+            const uObj = u.toObject();
+            // Basic signing attempt if it's a key not full URL, but typically profilePhoto is full URL in DB 
+            // unless we changed it. Let's assume it's URL or needs no signing for now OR
+            // better: attempt signing if it looks like a key?
+            // Existing logic often saves full URL. 
+            // Wait, existing logic in `setProfilePhoto` saves `photo.url`.
+            // So we can just return it.
+            return {
+                _id: uObj._id,
+                username: uObj.username,
+                displayName: [uObj.first_name, uObj.last_name].filter(Boolean).join(' ') || uObj.username,
+                profilePhoto: uObj.profilePhoto
+            };
+        }));
+
+        res.status(200).json({ success: true, data: blockedList });
+    } catch (error) {
+        logger.error('Get Blocked Users Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };

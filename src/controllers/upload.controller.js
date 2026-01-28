@@ -1,4 +1,5 @@
 const { uploadToS3 } = require('../utils/s3');
+const { chatS3Client } = require('../config/s3'); // Import chat client
 const logger = require('../utils/logger');
 
 // @desc    Upload a single file
@@ -14,13 +15,12 @@ exports.uploadFile = async (req, res) => {
         // Generate a folder path based on user ID or 'general'
         const folder = req.user ? `uploads/${req.user._id}` : 'uploads/general';
 
-        // Use existing S3 utility
-        // uploadToS3 expects (file, folder, client, bucketName) where file is the multer object
-        const result = await uploadToS3(file, folder);
+        // Use chatS3Client explicitely as it has better permissions
+        const result = await uploadToS3(file, folder, chatS3Client);
 
         res.status(200).json({
             success: true,
-            url: result.url, // Assuming uploadToS3 returns { url, key }
+            url: result.Location, // Fixed: s3 utility returns Location, not url
             key: result.key
         });
     } catch (error) {

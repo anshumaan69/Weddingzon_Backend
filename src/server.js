@@ -42,7 +42,9 @@ app.set('trust proxy', 1);
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.use(cookieParser());
-app.use(helmet());
+app.use(helmet({
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+}));
 app.use(require('compression')()); // Gzip Compression
 app.use(morgan('dev'));
 

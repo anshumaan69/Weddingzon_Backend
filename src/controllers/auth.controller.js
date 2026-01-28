@@ -407,6 +407,10 @@ exports.registerDetails = async (req, res) => {
                 ...user.franchise_details, // Keep existing if any (though usually empty at start)
                 ...req.body.franchise_details
             };
+            // Resubmission Logic: If rejected, reset to pending_approval
+            if (user.franchise_status === 'rejected') {
+                user.franchise_status = 'pending_approval';
+            }
         }
 
         // Vendor Details - Only if role is vendor
@@ -417,8 +421,8 @@ exports.registerDetails = async (req, res) => {
                     ...req.body.vendor_details
                 };
             }
-            // Set default status if not set
-            if (!user.vendor_status) {
+            // Set default status if not set OR if Rejected (Resubmission)
+            if (!user.vendor_status || user.vendor_status === 'rejected') {
                 user.vendor_status = 'pending_approval';
             }
         }

@@ -1,15 +1,13 @@
 WEDDINGZON API DOCUMENTATION
 ============================
-Version: 1.0.0
+Version: 1.1.0
 Base URL: /api
-Date: 2026-01-14
+Date: 2026-01-28
 
 INTRODUCTION
 ------------
-This API powers the WeddingZon platform, facilitating user onboarding, feed interactions, photo management, and administrative oversight. The API uses RESTful principles and JSON for data exchange.
+This API powers the WeddingZon platform, facilitating user onboarding, feed interactions, photo management, e-commerce, and administrative oversight. The API uses RESTful principles and JSON for data exchange.
 
-    This API powers the WeddingZon platform, facilitating user onboarding, feed interactions, photo management, and administrative oversight. The API uses RESTful principles and JSON for data exchange.
-  
 DATA MODELS
 -----------
 ### 1. USER OBJECT
@@ -106,724 +104,332 @@ DATA MODELS
 ================================================================================
                                  AUTH & ACCOUNTS
 ================================================================================
+Base URL: /api/auth
 
-================================================================================
-                                 AUTH & ACCOUNTS
-================================================================================
+1. LOGIN (Standard)
+   POST /api/auth/login
+   Body: { "username": "...", "password": "..." }
+   Response: { "success": true, "token": "...", "user": { ... } }
 
-1. GOOGLE LOGIN
-   POST /auth/google
-   Desc: Authenticate a user via Google OAuth 2.0.
-   
-   Request Body (One of the following is required):
+2. GOOGLE LOGIN
+   POST /api/auth/google
+   Body:
    {
      "code": "4/0AeaYSH...",          // (Auth Code Flow)
      "redirect_uri": "postmessage",   // Required if using 'code'
      "idToken": "eyJ..."              // (Implicit Flow)
    }
+   Response: { "success": true, "accessToken": "...", "refreshToken": "...", "user": { ... } }
 
-   Response (200 OK):
-   {
-     "success": true,
-     "accessToken": "eyJ...",
-     "refreshToken": "eyJ...",
-     "user": { ...UserObject }
-   }
+3. SEND OTP
+   POST /api/auth/send-otp
+   Body: { "phone": "+919876543210" }
+   Response: { "success": true, "message": "OTP sent successfully" }
 
-2. SEND OTP
-   POST /auth/send-otp
-   Desc: Send a verification OTP to a mobile number.
-   
-   Request Body:
-   {
-     "phone": "+919876543210" // Required (E.164 format)
-   }
+4. VERIFY OTP
+   POST /api/auth/verify-otp
+   Body: { "phone": "+919876543210", "code": "123456" }
+   Response: { "success": true, "user": { ... } }
 
-   Response (200 OK): { "message": "OTP sent successfully" }
-   Error (400): { "message": "Invalid phone number" }
-
-3. VERIFY OTP
-   POST /auth/verify-otp
-   Desc: Verify the sent OTP and login/link the phone number.
-   
-   Request Body:
-   {
-     "phone": "+919876543210", // Required
-     "code": "123456"          // Required
-   }
-
-   Response (200 OK):
-   {
-     "success": true,
-     "user": { ...UserObject }
-   }
-   Error (400): { "message": "Invalid OTP or expired" }
-
-4. UPDATE PROFILE DETAILS (Onboarding)
-   POST /auth/register-details
-   Desc: Update profile information.
-   
-   Request Body (Required Fields):
-   {
-     "first_name": "String",
-     "last_name": "String",
-     "dob": "Date (YYYY-MM-DD)",
-     "gender": "Male | Female | Other",
-     "role": "groom | bride | member",
-     "religion": "String",
-     "about_me": "String"
-   }
-
-   Response (200 OK): { "message": "Profile updated successfully", "user": { ... } }
-
-5. GET CURRENT USER
-   GET /auth/me
-   Desc: Retrieve currently logged-in user context.
-   Query: ?full=true (Optional, to sign all photo URLs)
-   
-   Response (200 OK): UserObject
-
-6. LOGOUT
-   POST /auth/logout
-   
-   Response (200 OK): { "message": "Logged out" }
-
-7. REFRESH TOKEN
-   POST /auth/refresh
+5. REFRESH TOKEN
+   POST /api/auth/refresh
    Desc: Get a new access token using a valid refresh token (HttpOnly Cookie).
-   
-   Response (200 OK): { "success": true, "accessToken": "..." }
+   Response: { "success": true, "accessToken": "..." }
 
+6. CHECK USERNAME
+   GET /api/auth/check-username
+   Query: ?username=alice
+   Response: { "available": true/false }
+
+// PROTECTED ROUTES BELOW
+
+7. REGISTER DETAILS
+   POST /api/auth/register-details
+   Body: { "first_name": "...", "last_name": "...", "dob": "...", "gender": "...", "role": "...", "religion": "...", "about_me": "..." }
+   Response: { "message": "Profile updated successfully", "user": { ... } }
+
+8. GET CURRENT USER
+   GET /api/auth/me
+   Response: UserObject
+
+9. LOGOUT
+   POST /api/auth/logout
+   Response: { "message": "Logged out" }
 
 
 ================================================================================
-                                  UPLOADS
+                                 USER & FEED
 ================================================================================
+Base URL: /api/users
+All routes below require Authentication unless specified.
 
-1. UPLOAD FILE (Generic)
-   POST /uploads
-   Desc: Generic file upload (e.g. for products, chat).
+1. GET FEED
+   GET /api/users/feed
+   Desc: Fetch a paginated, shuffled feed of potential matches.
+   Query: ?cursor=...&viewAs=... (for Franchise)
+   Response: { "success": true, "data": [ ...UserObjects ], "nextCursor": "..." }
+
+2. SEARCH USERS
+   GET /api/users/search
+   Desc: Advanced search with filters.
+   Query: ?q=name&minAge=20&maxAge=30&gender=Female&city=Delhi...
+   Response: { "success": true, "data": [ ...UserObjects ], "pagination": { ... } }
+
+3. GET NEARBY USERS
+   GET /api/users/nearby
+   Query: ?latitude=...&longitude=...&radius=50
+   Response: { "count": 5, "users": [ ... ] }
+
+4. GET USER PROFILE (Public/Protected)
+   GET /api/users/:username
+   Desc: Get full details (if allowed) of a specific user.
+   Response: UserObject
+
+5. PUBLIC PREVIEW
+   GET /api/users/:username/public-preview
+   Desc: Get limited public details for unauthenticated users.
+
+6. UPDATE LOCATION
+   PATCH /api/users/location
+   Body: { "latitude": 26.45, "longitude": 80.33 }
+
+7. UPLOAD PHOTOS
+   POST /api/users/upload-photos
    Content-Type: multipart/form-data
-   Body: { "photo": [File] }
+   Body: { "photos": [File] } (Max 10)
+   Response: { "success": true, "data": [ ...Photos ] }
+
+8. MANAGE PHOTOS
+   PATCH /api/users/photos/:photoId/set-profile
+   DELETE /api/users/photos/:photoId
+
+9. BLOCKING & REPORTING
+   POST /api/users/block
+   Body: { "targetUserId": "ObjectId" } // or username depending on implementation checking controller
+   
+   POST /api/users/unblock
+   Body: { "targetUserId": "ObjectId" }
+
+   POST /api/users/report
+   Body: { "targetUserId": "ObjectId", "reason": "Spam", "description": "..." }
+
+10. PROFILE VIEWS
+    POST /api/users/view/:userId
+    Desc: Record a profile view.
+    
+    GET /api/users/viewers
+    Desc: See who viewed your profile.
+
+
+================================================================================
+                                 CONNECTIONS
+================================================================================
+Base URL: /api/connections
+
+1. SEND CONNECTION REQUEST
+   POST /api/connections/send
+   Body: { "targetUsername": "alice" }
+
+2. ACCEPT / REJECT
+   POST /api/connections/accept
+   Body: { "requestId": "..." }
+   
+   POST /api/connections/reject
+   Body: { "requestId": "..." }
+
+3. CANCEL / DELETE
+   POST /api/connections/cancel
+   Body: { "targetUsername": "alice", "type": "connection" }
+   
+   DELETE /api/connections/delete
+   Body: { "targetUsername": "alice" }
+
+4. ACCESS REQUESTS (Photos/Details)
+   POST /api/connections/request-photo-access
+   POST /api/connections/request-details-access
+   Body: { "targetUsername": "alice" }
+
+   POST /api/connections/respond-photo
+   POST /api/connections/respond-details
+   Body: { "requestId": "...", "action": "grant" | "reject" }
+
+5. GET INFO
+   GET /api/connections/status/:username
+   Desc: Check connection/access status with a specific user.
+   
+   GET /api/connections/my-connections
+   Desc: List accepted friends.
+   
+   GET /api/connections/requests
+   Desc: List incoming pending requests.
+   
+   GET /api/connections/notifications
+   Desc: Get connection-related notifications.
+
+
+================================================================================
+                                 CHAT
+================================================================================
+Base URL: /api/chat
+
+1. HISTORY
+   GET /api/chat/history/:userId
+   Query: ?limit=50&before=timestamp
+
+2. CONVERSATIONS
+   GET /api/chat/conversations
+   Desc: List recent conversations for sidebar.
+
+3. MARK READ
+   POST /api/chat/read
+   Body: { "senderId": "..." }
+
+4. UPLOAD IMAGE
+   POST /api/chat/upload
+   Content-Type: multipart/form-data
+   Body: { "image": [File] }
    Response: { "success": true, "url": "..." }
 
 
 ================================================================================
-                                  PRODUCTS
+                                 PRODUCTS (E-COMMERCE)
 ================================================================================
+Base URL: /api/products
 
-1. GET ALL PRODUCTS
-   GET /products
-   Desc: List products with filters.
-   Query Params:
-     - category: String (Enum: Clothing, Jewelry, Venue...)
-     - minPrice, maxPrice: Number
-     - search: String (Matches name or description)
-     - page: Number (Default 1)
-     - limit: Number (Default 12)
+1. LIST PRODUCTS
+   GET /api/products
+   Query: ?category=...&minPrice=...&search=...&page=1
+   
+   GET /api/products/:id
+   Desc: Get single product details.
 
-   Response (200 OK):
-   {
-     "success": true,
-     "data": [ ...ProductObjects ],
-     "pagination": { "total": 100, "page": 1, "pages": 10 }
-   }
+2. VENDOR MANAGEMENT
+   GET /api/products/my/products
+   Desc: Get currently logged-in vendor's products.
+   
+   POST /api/products
+   Body: { "name": "...", "price": 100, "description": "...", "category": "...", "images": [] }
+   
+   PATCH /api/products/:id
+   DELETE /api/products/:id
 
-2. GET PRODUCT
-   GET /products/:id
-   Response: { "success": true, "data": ProductObject }
-
-3. CREATE PRODUCT (Vendor Only)
-   POST /products
-   Body (Required):
-   {
-     "name": "String",
-     "description": "String",
-     "price": "Number",
-     "category": "String (Valid Enum)",
-     "images": ["String (URL)"]
-   }
-
-4. MY PRODUCTS
-   GET /products/my/products
-   Desc: List logged-in vendor's products.
-
-5. UPDATE PRODUCT
-   PATCH /products/:id
-   Body: { ...Partial Product Fields }
-
-6. DELETE PRODUCT
-   DELETE /products/:id
-
+3. REVIEWS
+   POST /api/products/:id/reviews
+   Body: { "rating": 5, "comment": "Great!" }
 
 
 ================================================================================
-                                 USER & FEED
+                                 CART
 ================================================================================
+Base URL: /api/cart
 
-================================================================================
-                                 USER & FEED
-================================================================================
+1. GET CART
+   GET /api/cart
 
-1. GET FEED
-   GET /users/feed
-   Desc: Fetch a paginated, shuffled feed of potential matches.
-   Query Params:
-    - cursor: (Optional) ID of previous last item.
-    - viewAs: (Required for Franchise) ID of member to view feed as.
-    
-    Response (200 OK):
-    {
-      "success": true,
-      "data": [ ...UserObjects ],
-      "nextCursor": "65a1..."
-    }
-
-2. SEARCH USERS
-   GET /users/search
-   Desc: Search for users with extensive filtering capabilities.
+2. MANAGE ITEMS
+   POST /api/cart/add
+   Body: { "productId": "...", "quantity": 1 }
    
-   Query Params (All Optional):
-     - q: General text search (name, bio, city, occupation)
-     
-     // Personal
-     - minAge, maxAge: Number
-     - gender: Male | Female
-     - minHeight, maxHeight: Number (cm or ft string)
-     - marital_status: "Never Married" | "Divorced" ...
-     - religion: String
-     - community: String
-     - mother_tongue: String
-     
-     // Location
-     - country: String
-     - state: String
-     - city: String
-     
-     // Professional
-     - highest_education: String
-     - occupation: String
-     - annual_income: String
-     
-     // Lifestyle
-     - eating_habits: Veg | Non-Veg
-     - smoking_habits: Yes | No
-     - drinking_habits: Yes | No
-     
-     // Family
-     - brothers: Number
-     - sisters: Number
-     
-     // Property (Special)
-     - property_type: String
-     - minLandArea, maxLandArea: Number
-     
-     // Sorting & Paging
-     - sortBy: "created_at" (default) | "age_asc" | "age_desc"
-     - page: Number (Default 1)
-     - limit: Number (Default 20)
-
-   Response (200 OK):
-   {
-      "success": true,
-      "data": [ ...UserObjects (Summary View: _id, username, displayName, age, city, occupation, profilePhoto) ],
-      "pagination": { "total": 50, "page": 1, "pages": 3 }
-   }
-
-3. GET USER PROFILE
-   GET /users/:username
-   Desc: Get full details of a specific user.
+   POST /api/cart/remove/:itemId
    
-   Response (200 OK): UserObject
-   Error (404): { "message": "User not found", "code": "USER_NOT_FOUND" }
-   Error (403): { "message": "Suspended/Banned", "code": "USER_BANNED" }
-
-4. UPLOAD PHOTOS
-   POST /users/upload-photos
-   Desc: Upload photos to user gallery. Max 10 photos total allowed per user.
-   Content-Type: multipart/form-data
+   PATCH /api/cart/update/:itemId
+   Body: { "quantity": 2 }
    
-   Body:
-     - photos: [Binary File Data] (Max 10MB per file)
-
-   Response (200 OK):
-   {
-     "success": true,
-     "message": "Photos uploaded successfully",
-     "data": [ ...Updated Photo Array ],
-     "errors": [ { "filename": "bad.exe", "error": "Invalid Type" } ]
-   }
-
-6. SET PROFILE PHOTO
-   PATCH /users/photos/:photoId/set-profile
-   Desc: Set a photo as main profile photo (Moves to index 0).
-
-   Response (200 OK): { "success": true, "data": [ ...Photos ] }
-
-7. UPDATE LOCATION // TODO: Verify if implemented
-   PATCH /users/location
-   Body: { "latitude": 26.45, "longitude": 80.33 }
-
-8. GET NEARBY USERS
-   GET /users/nearby
-   Query: ?latitude=...&longitude=...&radius=50
-   
-   Response (200 OK): { "count": 5, "users": [ ... ] }
-
-9. RECORD PROFILE VIEW
-   POST /users/view/:userId
-   Desc: Record a view (Max 1 per day per user).
-   Response (200 OK): { "success": true }
-
-10. GET PROFILE VIEWERS
-    GET /users/viewers
-    Response (200 OK): { "success": true, "data": [ { "viewer": UserSummary, "viewedAt": Date } ] }
-
+   DELETE /api/cart
+   Desc: Clear entire cart.
 
 
 ================================================================================
-                                  CONNECTIONS
+                                 FRANCHISE
 ================================================================================
+Base URL: /api/franchise
 
-1. SEND CONNECTION REQUEST (Interest)
-   POST /connections/send
-   Desc: Send a connection request (interest) to another user.
+1. PAYMENTS
+   POST /api/franchise/payment
+
+2. PROFILE MANAGEMENT (Franchise Managed Users)
+   POST /api/franchise/create-profile
+   Body: { "first_name", "last_name", "gender", "dob", "religion", "phone", ... }
    
-   Request Body:
-   {
-     "targetUsername": "alice"        // Required
-   }
+   GET /api/franchise/profiles
+   GET /api/franchise/profiles/:profileId
+   PATCH /api/franchise/profiles/:profileId
 
-   Response (201 Created):
-   {
-     "success": true,
-     "data": { "status": "pending", ... }
-   }
-
-2. ACCEPT CONNECTION
-   POST /connections/accept
-   Desc: Accept a pending connection request.
+3. MATCHMAKING
+   PATCH /api/franchise/profiles/:profileId/preferences
+   Body: { "preferences": { "minAge": 25, ... } }
    
-   Request Body:
-   {
-     "requestId": "65b..."            // Required
-   }
+   GET /api/franchise/custom-matches/:profileId/pdf
 
-3. REJECT CONNECTION
-   POST /connections/reject
-   Desc: Reject a pending connection request.
-   
-   Request Body:
-   {
-     "requestId": "65b..."            // Required
-   }
-
-4. CANCEL REQUEST
-   POST /connections/cancel
-   Desc: Cancel a pending request (connection, photo, or details).
-   
-   Request Body:
-   {
-     "targetUsername": "alice",
-     "type": "connection"             // 'connection', 'photo', or 'details'
-   }
-
-5. REQUEST PHOTO ACCESS
-   POST /connections/request-photo-access
-   Desc: Request permission to view a user's private photos.
-   
-   Request Body:
-   {
-     "targetUsername": "alice"        // Required
-   }
-
-6. REQUEST DETAILS ACCESS
-   POST /connections/request-details-access
-   Desc: Request permission to view a user's contact details.
-   
-   Request Body:
-   {
-     "targetUsername": "alice"        // Required
-   }
-
-7. RESPOND TO REQUESTS
-   POST /connections/respond-photo
-   POST /connections/respond-details
-   Desc: Grant or reject access requests.
-   
-   Request Body:
-   {
-     "requestId": "65b...",           // Required
-     "action": "grant" | "reject"     // Required
-   }
-
-8. GET INCOMING REQUESTS
-   GET /connections/requests
-   Desc: Get all pending requests (Connection, Photo, Details).
-   
-   Response (200 OK):
-   {
-     "success": true,
-     "data": [
-       { "type": "connection", "requester": { ... }, "status": "pending" },
-       { "type": "photo", "requester": { ... }, "status": "pending" }
-     ]
-   }
-
-9. GET MY CONNECTIONS
-   GET /connections/my-connections
-   Desc: List of accepted connections (friends).
-   
-   Response (200 OK):
-   {
-     "success": true,
-     "data": [
-       { "username": "alice", "profilePhoto": "..." }
-     ]
-   }
-
-10. CHECK CONNECTION STATUS
-    GET /connections/status/:username
-    Desc: Check if the current user has access/connection with target user.
-    
-    Response (200 OK):
-    {
-      "success": true,
-      "status": "pending",       // Photo Access Status
-      "friendStatus": "accepted",// Connection Status
-      "detailsStatus": "none"    // Details Access Status
-    }
+4. PHOTOS
+   POST /api/franchise/profiles/:profileId/photos
+   PATCH /api/franchise/profiles/:profileId/photos/:photoId/set-profile
+   DELETE /api/franchise/profiles/:profileId/photos/:photoId
 
 
 ================================================================================
-                                ADMINISTRATIVE
+                                 ADMIN
 ================================================================================
-                                ADMINISTRATIVE
-================================================================================
-(Requires `admin_role`: 'admin' or 'super_admin')
+Base URL: /api/admin
+Requires `admin_role: admin`
 
-1. USER MANAGEMENT
-   GET /admin/users
-   Desc: List users with search and filters.
-   Query Params:
-     - page: Number
-     - limit: Number
-     - search: String (Name, Email, Phone, Username)
-     - role: 'user' | 'vendor' | 'franchise' | 'admin' | 'all'
-     - sortBy: Field name (default 'created_at')
-     - sortOrder: 'asc' | 'desc' (default 'desc')
+1. DASHBOARD
+   GET /api/admin/stats
+   GET /api/admin/cost
+   POST /api/admin/cost
 
-   Response (200 OK):
-   {
-     "success": true,
-     "data": [ ...UserObjects ],
-     "pagination": { "total": 100, "page": 1, "pages": 10 }
-   }
+2. USER MANAGEMENT
+   GET /api/admin/users
+   GET /api/admin/users/:id
+   PATCH /api/admin/users/:id/status
+   PATCH /api/admin/users/:id/role
+   DELETE /api/admin/users/:id
 
-2. GET USER DETAILS
-   GET /admin/users/:id
-
-3. UPDATE USER STATUS (Ban/Suspend)
-   PATCH /admin/users/:id/status
-   Body: { "status": "active" | "banned" | "suspended" }
-
-4. UPDATE USER ROLE
-   PATCH /admin/users/:id/role
-   Body: { "role": "admin" | "user" } (Promotes/Demotes admin privileges)
-
-5. DELETE USER
-   DELETE /admin/users/:id
-
-6. VENDOR MANAGEMENT
-   GET /admin/vendors
-   Query: ?status=pending_approval | active | rejected
+3. VENDORS & FRANCHISES
+   GET /api/admin/vendors
+   PATCH /api/admin/vendors/:id/status
    
-   PATCH /admin/vendors/:id/status
-   Body: { "status": "active" | "rejected" }
+   GET /api/admin/franchises/requests
+   PATCH /api/admin/franchises/:id/approve
 
-7. FRANCHISE MANAGEMENT
-   GET /admin/franchises/requests
-   Desc: Get pending franchise approvals.
+4. REPORTS & MODERATION
+   GET /api/admin/reports
+   PATCH /api/admin/reports/:id
    
-   PATCH /admin/franchises/:id/approve
-   Body: { "status": "active" | "rejected" }
+   GET /api/admin/photo-access/requests
+   PATCH /api/admin/photo-access/requests/:id
 
-8. REPORT MANAGEMENT
-   GET /admin/reports
-   Query: ?status=pending | resolved | dismissed
-   
-   PATCH /admin/reports/:id
-   Body: { "status": "resolved", "adminNotes": "..." }
-
-9. PHOTO ACCESS MODERATION
-   GET /admin/photo-access/requests
-   
-   PATCH /admin/photo-access/requests/:id
-   Body: { "status": "granted" | "rejected" }
-
-10. SYSTEM STATS
-    GET /admin/stats
-    Response: { "totalUsers": 100, "activeUsers": 50, "totalRevenue": 0, ... }
-
-11. SEND PUSH NOTIFICATION
-    POST /admin/send-push
-    Body:
-    {
-      "title": "String",
-      "body": "String",
-      "userId": "ObjectId (Optional - Leave empty to broadcast to ALL)"
-    }
-
-                                CHAT & MESSAGING
-================================================================================
-
-1. GET CONVERSATIONS
-   GET /chat/conversations
-   Desc: Get list of recent conversations (for sidebar).
-   
-   Response (200 OK):
-   {
-     "success": true,
-     "data": [
-       {
-         "_id": "user_id_of_other_person",
-         "username": "alice",
-         "lastMessage": "Hello there",
-         "unreadCount": 2
-       }
-     ]
-   }
-
-2. GET CHAT HISTORY
-   GET /chat/history/:userId
-   Desc: Get messages between current user and target user.
-   Query Params:
-     - page: 1
-     - limit: 50
-   
-   Response (200 OK):
-   {
-     "success": true,
-     "data": [
-       {
-         "sender": { "username": "me" },
-         "message": "Hi",
-         "createdAt": "..."
-       }
-     ]
-   }
-
-3. UPLOAD CHAT IMAGE
-   POST /chat/upload
-   Desc: Upload an image to send in chat.
-   Content-Type: multipart/form-data
-   Body: image (file)
-   
-   Response (200 OK):
-   {
-     "success": true,
-     "url": "https://s3..."           // Presigned URL (or key/path depending on implementation)
-   }
-
-4. MARK AS READ
-   POST /chat/read
-   Desc: Mark messages from a specific sender as read.
-   
-   Body:
-   {
-     "senderId": "..."
-   }
-
---------------------------------------------------------------------------------
-SOCKET.IO EVENTS (Real-time)
---------------------------------------------------------------------------------
-- Connection: Requires `auth: { token: "..." }`
-- Event: `send_message`
-  Data: { 
-    receiverId: "...", 
-    message: "...", 
-    type: "text" | "image",
-    mediaUrl: "..."  // Optional: URL/Key from upload response
-  }
-- Event: `receive_message`
-  Data: { 
-    sender: { ... }, 
-    message: "...", 
-    type: "text" | "image",
-    mediaUrl: "https://..." // Presigned URL for viewing
-  }
-- Event: `typing` / `stop_typing`
-  Data: { receiverId: "..." }
-- Event: `profile_view`
-  Data: {
-    viewer: { _id, username, first_name, ... },
-    viewedAt: "..."
-  }
+5. NOTIFICATIONS
+   POST /api/admin/send-push
 
 
 ================================================================================
-                                DYNAMIC FILTERS
+                                 FILTERS
 ================================================================================
+Base URL: /api/filters
 
-1. GET FILTERS (Public)
+1. PUBLIC
    GET /api/filters
-   Desc: Get visible filters for frontend rendering.
-   Response (200 OK): { "success": true, "data": [FilterConfig] }
 
-2. GET ALL FILTERS (Admin)
+2. ADMIN
    GET /api/filters/admin
-   Response: { "success": true, "data": [FilterConfig] }
-
-3. CREATE FILTER
    POST /api/filters
-   Body: { "label": "String", "key": "String", "type": "text|select...", "options": [], "section": "Basic" }
-
-4. UPDATE FILTER
    PUT /api/filters/:id
-   Body: { ...updates }
-
-5. DELETE FILTER
    DELETE /api/filters/:id
+   POST /api/filters/reorder
 
 
 ================================================================================
-                            USER SAFETY & MANAGEMENT
+                                 MISC
 ================================================================================
 
-1. BLOCK USER
-   POST /users/block
-   Body: { "targetUsername": "alice" }
-   Response: { "success": true, "message": "User blocked" }
-
-2. UNBLOCK USER
-   POST /users/unblock
-   Body: { "targetUsername": "alice" }
-
-3. REPORT USER
-   POST /users/report
-   Body: { "targetUsername": "alice", "reason": "Spam", "description": "..." }
-
-4. REMOVE CONNECTION
-   DELETE /connections/delete
-   Body: { "targetUsername": "alice" }
-
-
-
-================================================================================
-                                   FRANCHISE
-================================================================================
-(Base URL: /franchise)
-
-1. SUBMIT PAYMENT (Mock)
-   POST /franchise/payment
-   Desc: Submit payment to request activation.
-   Body: {} (No body required for mock)
-   Response (200 OK): { "success": true, "message": "Payment successful" }
-
-2. CREATE MEMBER PROFILE
-   POST /franchise/profiles
-   Desc: Create a new profile (member) managed by this franchise.
+1. UPLOADS
+   POST /api/uploads
+   Body: { "photo": [File] }
    
-   Body (Required):
-   {
-     "first_name": "String",
-     "last_name": "String",
-     "gender": "Male | Female",
-     "dob": "Date (YYYY-MM-DD)",
-     "religion": "String",
-     "community": "String",
-     "phone": "String (Unique)",
-     "email": "String (Unique, Optional)",
-     "password": "String (Optional, autogenerated if not provided)"
-   }
-
-   Response (201 Created):
-   {
-     "success": true,
-     "credentials": { "username": "...", "password": "..." },
-     "profile": { ...UserObject }
-   }
-
-3. GET ALL MANAGED PROFILES
-   GET /franchise/profiles
-   Desc: List all users created by this franchise.
-   Response (200 OK): { "success": true, "profiles": [ ...UserObjects ] }
-
-4. GET MEMBER PROFILE
-   GET /franchise/profiles/:profileId
-   Response (200 OK): UserObject
-
-5. UPDATE MEMBER PROFILE
-   PATCH /franchise/profiles/:profileId
-   Desc: Update details for a member managed by you.
-   
-   Body (Any allowed field):
-   {
-     "first_name": "John",
-     "bio": "Updated bio...",
-     "city": "Mumbai",
-     "occupation": "Engineer",
-     "annual_income": "10-20 LPA",
-     "marital_status": "Never Married",
-     "height": "5ft 10in",
-     "education": "B.Tech"
-     // ...any other non-critical User field
-   }
-
-6. UPLOAD MEMBER PHOTOS
-   POST /franchise/profiles/:profileId/photos
-   Desc: Upload photos for a specific member.
-   Content-Type: multipart/form-data
-   Body: { "photos": [File] }
-
-7. SET MEMBER PROFILE PHOTO
-   PATCH /franchise/profiles/:profileId/photos/:photoId/set-profile
-
-8. DELETE MEMBER PHOTO
-   DELETE /franchise/profiles/:profileId/photos/:photoId
-
-9. UPDATE MATCH PREFERENCES
-   PATCH /franchise/match-prefs/:profileId
-   Desc: Set the partner preferences for a member.
-   
-   Body:
-   {
-     "preferences": {
-       "minAge": 25, 
-       "maxAge": 30,
-       "religion": "Hindu",
-       "community": "Any",
-       "location": "Mumbai",
-       "marital_status": "Never Married",
-       "eating_habits": "Veg",
-       "smoking_habits": "No",
-       "drinking_habits": "No",
-       "highest_education": "Any",
-       "annual_income": "Any"
-     }
-   }
-
-10. DOWNLOAD MATCH PDF
-    GET /franchise/custom-matches/:profileId/pdf
-    Desc: Generate and download a PDF of potential matches based on preferences.
-    Response: Binary PDF File (Content-Type: application/pdf)
-
-
-
-================================================================================
-                                  NOTIFICATIONS
-================================================================================
-(Base URL: /api/notifications)
-
-1. REGISTER TOKEN
-   POST /notifications/register-token
-   Desc: Register a device FCM token for push notifications.
-   Body: { "token": "FCM_TOKEN..." }
-   Response (200 OK): { "success": true, "message": "Token registered" }
-
-2. UNREGISTER TOKEN
-   POST /notifications/unregister-token
-   Desc: Remove a device token (e.g. on logout).
+2. NOTIFICATIONS
+   POST /api/notifications/register-token
    Body: { "token": "..." }
-   Response (200 OK): { "success": true, "message": "Token unregistered" }
-
+   
+   POST /api/notifications/unregister-token
+   Body: { "token": "..." }
