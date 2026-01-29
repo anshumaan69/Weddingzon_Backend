@@ -7,7 +7,7 @@ const DetailsAccessRequest = require('../models/DetailsAccessRequest');
 // const cloudinary = require('../config/cloudinary'); // Deprecated
 const { getPreSignedUrl, uploadToS3 } = require('../utils/s3'); // Centralized S3 Utils
 const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const { s3Client } = require('../config/s3');
+const { s3Client, vendorS3Client } = require('../config/s3');
 const { notifyUser } = require('../services/notification.service');
 const Report = require('../models/Report');
 
@@ -604,7 +604,9 @@ exports.uploadPhotos = async (req, res) => {
                     Body: buffer,
                     ContentType: contentType, // Use dynamic content type
                 });
-                await s3Client.send(command);
+                // Determine which client to use based on user role
+                const client = (req.user && req.user.role === 'vendor') ? vendorS3Client : s3Client;
+                await client.send(command);
                 const duration = (performance.now() - uploadStart).toFixed(2);
                 logger.debug(`S3 Upload Success (${duration}ms): ${key}`);
                 return `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${key}`;

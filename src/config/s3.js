@@ -16,4 +16,13 @@ const chatS3Client = new S3Client({
     }
 });
 
-module.exports = { s3Client, chatS3Client };
+
+const vendorS3Client = new S3Client({
+    region: process.env.AWS_REGION || 'ap-south-1',
+    credentials: {
+        accessKeyId: process.env.AWS_VENDOR_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_VENDOR_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY
+    }
+});
+
+module.exports = { s3Client, chatS3Client, vendorS3Client };

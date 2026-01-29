@@ -1,4 +1,7 @@
-const { uploadToS3 } = require('../utils/s3');
+const { s3Client, vendorS3Client } = require('../config/s3');
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 const logger = require('../utils/logger');
 
 // @desc    Upload a single file
@@ -11,17 +14,48 @@ exports.uploadFile = async (req, res) => {
         }
 
         const file = req.file;
-        // Generate a folder path based on user ID or 'general'
-        const folder = req.user ? `uploads/${req.user._id}` : 'uploads/general';
+        const user = req.user;
 
-        // Use existing S3 utility
-        // uploadToS3 expects (file, folder, client, bucketName) where file is the multer object
-        const result = await uploadToS3(file, folder);
+        console.log('--- DEBUG UPLOAD ---');
+        console.log('User:', user ? user._id : 'No User');
+        console.log('Role:', user ? user.role : 'N/A');
+
+        // Logic matching user.controller.js (minus blur)
+        const fileId = uuidv4();
+        // Use 'weedingzon/vendor-img-upload' folder as per IAM Policy screenshot
+        const folderPrefix = 'weedingzon/vendor-img-upload';
+        const ext = path.extname(file.originalname) || '.jpg';
+
+        // Construct key: uploads/userId/fileId_orig.ext
+        let key;
+        if (user) {
+            key = `${folderPrefix}/${user._id}/${fileId}_orig${ext}`;
+        } else {
+            key = `${folderPrefix}/general/${fileId}${ext}`;
+        }
+        console.log('Constructed Key:', key);
+        console.log('Folder Prefix:', folderPrefix);
+
+        // Select Client
+        const client = (user && user.role === 'vendor') ? vendorS3Client : s3Client;
+
+        const command = new PutObjectCommand({
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+        });
+
+        await client.send(command);
+
+        // Construct URL with Region (Critical for correct routing)
+        const region = process.env.AWS_REGION || 'ap-south-1';
+        const url = `https://${process.env.AWS_BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
 
         res.status(200).json({
             success: true,
-            url: result.url, // Assuming uploadToS3 returns { url, key }
-            key: result.key
+            url: url,
+            key: key
         });
     } catch (error) {
         logger.error('Upload Error', { error: error.message });
