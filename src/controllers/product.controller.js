@@ -1,6 +1,7 @@
 const Product = require('../models/Product');
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const { getSignedFileUrl } = require('../utils/s3');
 
 // @desc    Create a new product
 // @route   POST /api/products
@@ -60,9 +61,18 @@ exports.getProducts = async (req, res) => {
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
+        // Sign images
+        const productsWithSignedImages = await Promise.all(products.map(async (product) => {
+            const productObj = product.toObject();
+            if (productObj.images && productObj.images.length > 0) {
+                productObj.images = await Promise.all(productObj.images.map(img => getSignedFileUrl(img)));
+            }
+            return productObj;
+        }));
+
         res.status(200).json({
             success: true,
-            data: products,
+            data: productsWithSignedImages,
             pagination: {
                 total: count,
                 page: Number(page),
@@ -89,7 +99,12 @@ exports.getProductById = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        res.status(200).json({ success: true, data: product });
+        const productObj = product.toObject();
+        if (productObj.images && productObj.images.length > 0) {
+            productObj.images = await Promise.all(productObj.images.map(img => getSignedFileUrl(img)));
+        }
+
+        res.status(200).json({ success: true, data: productObj });
     } catch (error) {
         logger.error('Get Product By ID Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
@@ -102,7 +117,16 @@ exports.getProductById = async (req, res) => {
 exports.getMyProducts = async (req, res) => {
     try {
         const products = await Product.find({ vendor: req.user._id }).sort({ created_at: -1 });
-        res.status(200).json({ success: true, data: products });
+
+        const productsWithSignedImages = await Promise.all(products.map(async (product) => {
+            const productObj = product.toObject();
+            if (productObj.images && productObj.images.length > 0) {
+                productObj.images = await Promise.all(productObj.images.map(img => getSignedFileUrl(img)));
+            }
+            return productObj;
+        }));
+
+        res.status(200).json({ success: true, data: productsWithSignedImages });
     } catch (error) {
         logger.error('Get My Products Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });

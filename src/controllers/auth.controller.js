@@ -29,11 +29,11 @@ console.log('[DEBUG] CALLBACK_URL:', process.env.CALLBACK_URL);
 // --- Helper Functions ---
 
 const generateTokens = (userId) => {
-    // Access Token: Short Lived (15m)
+    // Access Token: Long Lived (30d) - per user request
     const accessToken = jwt.sign(
         { id: userId, type: 'access' },
         process.env.JWT_SECRET,
-        { expiresIn: '15m' }
+        { expiresIn: '30d' }
     );
 
     // Refresh Token: Long Lived (30d)
@@ -66,10 +66,10 @@ const getCookieOptions = () => {
 const setCookies = (req, res, accessToken, refreshToken) => {
     const options = getCookieOptions();
 
-    // Access Token (15 mins)
+    // Access Token (30 days)
     res.cookie('access_token', accessToken, {
         ...options,
-        maxAge: 15 * 60 * 1000
+        maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     // Refresh Token (30 days)
@@ -578,13 +578,13 @@ exports.refreshToken = async (req, res) => {
         const newAccessToken = jwt.sign(
             { id: decoded.id, type: 'access' },
             process.env.JWT_SECRET,
-            { expiresIn: '15m' }
+            { expiresIn: '30d' }
         );
 
         const options = getCookieOptions();
         res.cookie('access_token', newAccessToken, {
             ...options,
-            maxAge: 15 * 60 * 1000
+            maxAge: 30 * 24 * 60 * 60 * 1000
         });
 
         // Refresh CSRF

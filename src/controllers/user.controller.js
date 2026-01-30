@@ -5,7 +5,7 @@ const PhotoAccessRequest = require('../models/PhotoAccessRequest');
 const ConnectionRequest = require('../models/ConnectionRequest');
 const DetailsAccessRequest = require('../models/DetailsAccessRequest');
 // const cloudinary = require('../config/cloudinary'); // Deprecated
-const { getPreSignedUrl, uploadToS3 } = require('../utils/s3'); // Centralized S3 Utils
+const { getPreSignedUrl, uploadToS3, getSignedFileUrl } = require('../utils/s3'); // Centralized S3 Utils
 const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { s3Client, vendorS3Client } = require('../config/s3');
 const { notifyUser } = require('../services/notification.service');
@@ -1009,13 +1009,18 @@ exports.getProfileViewers = async (req, res) => {
             const viewer = v.viewer;
             if (!viewer) return null; // Handle deleted users
 
+            let signedPhoto = null;
+            if (viewer.profilePhoto) {
+                signedPhoto = await getSignedFileUrl(viewer.profilePhoto);
+            }
+
             return {
                 _id: v._id,
                 viewer: {
                     _id: viewer._id,
                     username: viewer.username,
                     displayName: viewer.first_name,
-                    profilePhoto: viewer.profilePhoto,
+                    profilePhoto: signedPhoto,
                     bio: viewer.bio
                 },
                 viewedAt: v.viewedAt,

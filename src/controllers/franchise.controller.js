@@ -763,3 +763,61 @@ exports.generateMatchPdf = async (req, res) => {
         if (!res.headersSent) res.status(500).json({ message: 'Server Error' });
     }
 };
+
+const { sendEmail } = require('../services/email.service');
+const twilio = require('twilio');
+
+// @desc    Send Credentials (Reset Password & Notify)
+// @route   POST /api/franchise/profiles/:profileId/send-credentials
+// @access  Private (Franchise)
+exports.sendMemberCredentials = async (req, res) => {
+    try {
+        const { profileId } = req.params;
+        const profile = await User.findOne({ _id: profileId, created_by: req.user._id });
+
+        if (!profile) {
+            return res.status(404).json({ message: 'Profile not found or unauthorized' });
+        }
+
+        // Generate New Password (4 chars + 2 random digits for simplicity)
+        const crypto = require('crypto');
+        const newPassword = crypto.randomBytes(4).toString('hex') + Math.floor(10 + Math.random() * 90);
+
+        // Update User
+        profile.password = newPassword;
+        await profile.save();
+
+        const messageBody = `Welcome to WeddingZon! Your credentials have been updated.\nUsername: ${profile.username}\nPassword: ${newPassword}\nLogin at: ${process.env.CLIENT_URL || 'https://weddingzon.com'}/login`;
+
+        // 1. Send Email
+        if (profile.email) {
+            await sendEmail({
+                to: profile.email,
+                subject: 'Your WeddingZon Credentials',
+                text: messageBody,
+                html: `<p>Welcome to <b>WeddingZon</b>!</p><p>Your credentials have been updated by your Franchise Partner.</p><p><b>Username:</b> ${profile.username}<br><b>Password:</b> ${newPassword}</p><p><a href="${process.env.CLIENT_URL || 'https://weddingzon.com'}/login">Login Here</a></p>`
+            });
+        }
+
+        // 2. Send SMS (Twilio)
+        if (profile.phone && process.env.TWILIO_ACCOUNT_SID) {
+            try {
+                const client = new twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+                await client.messages.create({
+                    body: messageBody,
+                    to: profile.phone.startsWith('+') ? profile.phone : `+91${profile.phone}`,
+                    from: process.env.TWILIO_PHONE_NUMBER
+                });
+                logger.info(`SMS sent to ${profile.phone}`);
+            } catch (smsError) {
+                logger.error('SMS Send Failed', { error: smsError.message });
+            }
+        }
+
+        res.status(200).json({ success: true, message: 'Credentials sent successfully' });
+
+    } catch (error) {
+        logger.error('Send Credentials Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
