@@ -135,15 +135,22 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: null,
         },
+        // coverPhoto removed
         // --- Basic Details ---
         gender: { type: String, enum: ['Male', 'Female', 'Other'] },
         created_for: { type: String },
         height: { type: String },
+        weight: { type: String }, // New
         marital_status: { type: String },
         mother_tongue: { type: String },
         disability: { type: String, default: 'None' },
         aadhar_number: { type: String },
         blood_group: { type: String },
+
+        // --- Astro Details ---
+        manglik_status: { type: String, enum: ['Manglik', 'Non-Manglik', 'Anshik Manglik', "Don't Know"], default: "Don't Know" },
+        time_of_birth: { type: String },
+        place_of_birth: { type: String },
 
         // --- Location ---
         country: { type: String },
@@ -219,6 +226,7 @@ const userSchema = new mongoose.Schema(
                 key: { type: String },        // S3 Key for deletion
                 publicId: { type: String },   // Deprecated (Cloudinary) - Keep for backward compat temporarily
                 isProfile: { type: Boolean, default: false },
+                // isCover removed
                 order: { type: Number, default: 0 },
                 uploadedAt: { type: Date, default: Date.now }
             }],

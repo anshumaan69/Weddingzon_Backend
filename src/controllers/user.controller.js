@@ -190,7 +190,7 @@ exports.getFeed = async (req, res) => {
 
         // 1. Fetch Candidates (Optimized with lean())
         let users = await User.find(query)
-            .select('username first_name last_name profilePhoto photos bio created_at role')
+            .select('username first_name last_name profilePhoto photos bio created_at role dob height city caste religion highest_education occupation annual_income marital_status')
             .sort({ _id: -1 })
             .limit(FETCH_SIZE)
             .lean();
@@ -282,6 +282,13 @@ exports.getFeed = async (req, res) => {
             // Use the signed URL from the processed photos array (sorted with profile first)
             const signedProfilePhoto = photos.length > 0 ? photos[0].url : null;
 
+            // Calculate Age
+            let age = null;
+            if (userObj.dob) {
+                const diff = Date.now() - new Date(userObj.dob).getTime();
+                age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+            }
+
             return {
                 _id: userObj._id,
                 username: userObj.username,
@@ -292,7 +299,18 @@ exports.getFeed = async (req, res) => {
                 photos: photos,
                 role: userObj.role,
                 connectionStatus: connectionMap.get(userIdStr) || 'none',
-                photoRequestStatus: photoMap.get(userIdStr) || 'none'
+                photoRequestStatus: photoMap.get(userIdStr) || 'none',
+
+                // Demographic Data
+                age: age,
+                height: userObj.height,
+                city: userObj.city,
+                caste: userObj.caste,
+                religion: userObj.religion,
+                education: userObj.highest_education,
+                occupation: userObj.occupation,
+                income: userObj.annual_income,
+                marital_status: userObj.marital_status
             };
         }));
 
@@ -680,6 +698,8 @@ exports.uploadPhotos = async (req, res) => {
     }
 };
 
+// uploadCoverPhoto logic removed per user request
+
 // @desc    Get User By Username (Standardized Errors)
 // @route   GET /api/users/:username
 // @access  Private 
@@ -763,6 +783,16 @@ exports.getUserProfile = async (req, res) => {
             const profilePhotoObj = userObj.photos.find(p => p.isProfile) || userObj.photos[0];
             if (profilePhotoObj) {
                 userObj.profilePhoto = profilePhotoObj.url;
+            }
+
+            // Sync coverPhoto field (Secure/Blurred if needed)
+            const coverPhotoObj = userObj.photos.find(p => p.isCover);
+            if (coverPhotoObj) {
+                userObj.coverPhoto = coverPhotoObj.url;
+            } else if (userObj.coverPhoto) {
+                // If legacy coverPhoto string exists but no array item, we verify it
+                // Ideally, we should nullify it if we want strict mode, but let's leave it as is if it's external
+                // But if it's an S3 key (unlikely in old schema, it was null), we're good.
             }
         }
 
@@ -901,6 +931,51 @@ exports.deletePhoto = async (req, res) => {
 
     } catch (error) {
         logger.error('Delete Photo Error', { user: req.user.username, error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Set Cover Photo (From Gallery)
+// @route   PATCH /api/users/photos/:photoId/set-cover
+// @access  Private
+exports.setCoverPhoto = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        const photoId = req.params.photoId;
+
+        const photo = user.photos.id(photoId);
+        if (!photo) {
+            return res.status(404).json({ message: 'Photo not found' });
+        }
+
+        // Reset others
+        user.photos.forEach(p => p.isCover = false);
+
+        // Set new
+        photo.isCover = true;
+        user.coverPhoto = photo.url; // Update cache
+
+        await user.save();
+
+        // Resign URLs for response
+        const responsePhotos = await Promise.all(user.photos.map(async (p) => {
+            const pObj = p.toObject();
+            if (pObj.key) {
+                try {
+                    const signed = await getPreSignedUrl(pObj.key);
+                    if (signed) pObj.url = signed;
+                } catch (e) { }
+            }
+            return pObj;
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: responsePhotos,
+            message: 'Cover photo set successfully'
+        });
+    } catch (error) {
+        logger.error('Set Cover Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };

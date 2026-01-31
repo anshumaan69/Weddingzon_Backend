@@ -18,6 +18,7 @@ router.get('/feed', protect, authorize('member', 'bride', 'groom', 'admin', 'fra
 router.patch('/location', protect, require('../controllers/user.controller').updateLocation);
 router.get('/nearby', protect, ensureProfileComplete, require('../controllers/user.controller').getNearbyUsers);
 router.post('/upload-photos', protect, upload.array('photos', 10), uploadPhotos);
+// cover upload removed
 
 router.post('/block', protect, blockUser);
 router.post('/unblock', protect, unblockUser);
@@ -30,6 +31,7 @@ router.get('/viewers', protect, require('../controllers/user.controller').getPro
 router.post('/viewers/mark-read', protect, require('../controllers/user.controller').markProfileViewsAsRead);
 
 router.patch('/photos/:photoId/set-profile', protect, require('../controllers/user.controller').setProfilePhoto);
+// set-cover removed
 router.delete('/photos/:photoId', protect, require('../controllers/user.controller').deletePhoto);
 
 // Stub for access requests
