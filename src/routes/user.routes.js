@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getFeed, uploadPhotos, getUserProfile, blockUser, unblockUser, reportUser } = require('../controllers/user.controller');
+const { getFeed, uploadPhotos, getUserProfile, blockUser, unblockUser, reportUser, updatePartnerPreferences } = require('../controllers/user.controller');
 const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } });
@@ -13,7 +13,7 @@ const { ensureProfileComplete } = require('../middlewares/profileMiddleware');
 router.get('/:username/public-preview', require('../controllers/user.controller').getPublicProfilePreview);
 
 // Protected Specific Routes (Explicit protect to avoid ordering issues with router.use)
-router.get('/search', protect, authorize('member', 'bride', 'groom', 'admin', 'franchise'), ensureProfileComplete, require('../controllers/user.controller').searchUsers);
+router.get('/search', protect, require('../controllers/user.controller').searchUsers);
 router.get('/feed', protect, authorize('member', 'bride', 'groom', 'admin', 'franchise'), ensureProfileComplete, getFeed);
 router.patch('/location', protect, require('../controllers/user.controller').updateLocation);
 router.get('/nearby', protect, ensureProfileComplete, require('../controllers/user.controller').getNearbyUsers);
@@ -24,6 +24,7 @@ router.post('/block', protect, blockUser);
 router.post('/unblock', protect, unblockUser);
 router.get('/blocked-users', protect, require('../controllers/user.controller').getBlockedUsers);
 router.post('/report', protect, reportUser);
+router.put('/preferences', protect, updatePartnerPreferences);
 
 // Profile Views
 router.post('/view/:userId', protect, require('../controllers/user.controller').recordProfileView);

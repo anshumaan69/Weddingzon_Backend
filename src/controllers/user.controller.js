@@ -352,6 +352,8 @@ exports.searchUsers = async (req, res) => {
             property_type,
             brothers, sisters, // Family filters
             sortBy,
+            vendor_status, // New Filter
+            has_products, // New Filter: Only show vendors with products
             q, // Generic Search Query
             page = 1, limit = 20
         } = req.query;
@@ -363,12 +365,48 @@ exports.searchUsers = async (req, res) => {
                 $ne: req.user._id,
                 $nin: req.user.blockedUsers || []
             },
-            is_profile_complete: true, // Show only completed profiles
+            // is_profile_complete: true, // REMOVED: Managed conditionally below
             $or: [
                 { 'photos.0': { $exists: true } },
                 { profilePhoto: { $ne: null } }
             ]
+
+
         };
+
+        if (vendor_status) {
+            query.vendor_status = vendor_status;
+        }
+
+        // Only enforce profile completion for non-vendors or non-active vendors
+        // This allows 'active' vendors (who might be manually approved) to appear even if data is missing
+        if (vendor_status !== 'active') {
+            query.is_profile_complete = true;
+        }
+
+        // --- Has Products Filter (Vendor Specific) ---
+        if (has_products === 'true') {
+            const Product = require('../models/Product');
+            // Find all unique vendors who have at least one active product
+            const activeVendors = await Product.distinct('vendor', { isActive: true });
+            console.log('DEBUG: Active Product Vendors:', activeVendors);
+
+            // Merge with existing _id filter
+            if (query._id) {
+                // If existing _id filter exists (which it does, for excluding self/blocked),
+                // we need to use $and or merge carefully.
+                // Current structure: _id: { $ne: ..., $nin: ... }
+                // We want to add $in: activeVendors
+                // But we can't strict merge if $in already exists (unlikely here yet)
+
+                // Safest way: Add to $and array if complexity increases, 
+                // but since we know _id structure above:
+                query._id.$in = activeVendors;
+            } else {
+                query._id = { $in: activeVendors };
+            }
+        }
+        console.log('DEBUG: Final Query:', JSON.stringify(query, null, 2));
 
         // --- Generic Text Search ---
         if (q) {
@@ -459,7 +497,7 @@ exports.searchUsers = async (req, res) => {
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
         const users = await User.find(query)
-            .select('username first_name last_name profilePhoto photos bio dob religion city state height occupation land_area property_types')
+            .select('username first_name last_name profilePhoto photos bio dob religion city state height occupation land_area property_types vendor_details')
             .sort(sortOption)
             .skip(skip)
             .limit(parseInt(limit));
@@ -499,7 +537,8 @@ exports.searchUsers = async (req, res) => {
                 city: user.city,
                 state: user.state,
                 occupation: user.occupation,
-                land_area: user.land_area
+                land_area: user.land_area,
+                vendor_details: user.vendor_details
             };
         }));
 
@@ -1468,6 +1507,43 @@ exports.reportUser = async (req, res) => {
         res.status(201).json({ success: true, message: 'Report submitted' });
     } catch (error) {
         logger.error('Report User Error', { error: error.message });
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Update Partner Preferences
+// @route   PUT /api/users/preferences
+// @access  Private
+exports.updatePartnerPreferences = async (req, res) => {
+    try {
+        const { preferences } = req.body;
+        if (!preferences) {
+            return res.status(400).json({ message: 'Preferences data is required' });
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Update preferences
+        if (!user.partner_preferences) {
+            user.partner_preferences = {};
+        }
+
+        user.partner_preferences = {
+            ...user.partner_preferences,
+            ...preferences
+        };
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Preferences updated successfully',
+            data: user.partner_preferences
+        });
+
+    } catch (error) {
+        logger.error('Update Preferences Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
     }
 };

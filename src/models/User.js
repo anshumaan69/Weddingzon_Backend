@@ -158,10 +158,15 @@ const userSchema = new mongoose.Schema(
         city: { type: String },
 
         // --- Family ---
+        father_name: { type: String, trim: true }, // [NEW]
+        mother_name: { type: String, trim: true }, // [NEW]
         father_status: { type: String },
         mother_status: { type: String },
+        father_occupation: { type: String }, // [NEW]
+        mother_occupation: { type: String }, // [NEW]
         brothers: { type: Number, default: 0 },
         sisters: { type: Number, default: 0 },
+        live_with_family: { type: String, enum: ['Yes', 'No'] }, // [NEW]
         family_status: { type: String },
         family_type: { type: String },
         family_values: { type: String },
@@ -170,6 +175,7 @@ const userSchema = new mongoose.Schema(
 
         // --- Education & Career ---
         highest_education: { type: String },
+        college_name: { type: String }, // [NEW]
         educational_details: { type: String },
         occupation: { type: String },
         employed_in: { type: String },
@@ -215,10 +221,17 @@ const userSchema = new mongoose.Schema(
             default: {},
         },
         property_types: [String],
+        property_possession_type: { type: String, enum: ['Self-acquired', 'Ancestral', 'Multiple'] }, // [NEW]
         land_types: [String],
         land_area: { type: Number },
+        land_area_range: { type: String }, // [NEW] Optional text range if number isn't exact
         house_types: [String],
         business_types: [String],
+
+        // --- Added Personal ---
+        disability_type: { type: String }, // [NEW]
+        disability_description: { type: String }, // [NEW]
+        complexion: { type: String, enum: ['Fair', 'Wheatish', 'Dark'] }, // [NEW] (Mapping for 'Appearance')
         photos: {
             type: [{
                 url: { type: String, required: true },

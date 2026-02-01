@@ -453,6 +453,8 @@ exports.registerDetails = async (req, res) => {
         if (marital_status) user.marital_status = marital_status;
         if (mother_tongue) user.mother_tongue = mother_tongue;
         if (disability) user.disability = disability;
+        if (req.body.disability_type) user.disability_type = req.body.disability_type;
+        if (req.body.disability_description) user.disability_description = req.body.disability_description;
         if (aadhar_number) user.aadhar_number = aadhar_number;
         if (blood_group) user.blood_group = blood_group;
 
@@ -471,9 +473,15 @@ exports.registerDetails = async (req, res) => {
         if (req.body.family_values) user.family_values = req.body.family_values;
         if (req.body.annual_income) user.annual_income = req.body.annual_income;
         if (req.body.family_location) user.family_location = req.body.family_location;
+        if (req.body.live_with_family) user.live_with_family = req.body.live_with_family;
+        if (req.body.father_name) user.father_name = req.body.father_name;
+        if (req.body.mother_name) user.mother_name = req.body.mother_name;
+        if (req.body.father_occupation) user.father_occupation = req.body.father_occupation;
+        if (req.body.mother_occupation) user.mother_occupation = req.body.mother_occupation;
 
         // Education & Career
         if (req.body.highest_education) user.highest_education = req.body.highest_education;
+        if (req.body.college_name) user.college_name = req.body.college_name;
         if (req.body.educational_details) user.educational_details = req.body.educational_details;
         if (req.body.occupation) user.occupation = req.body.occupation;
         if (req.body.employed_in) user.employed_in = req.body.employed_in;
@@ -498,6 +506,7 @@ exports.registerDetails = async (req, res) => {
         if (req.body.land_types) user.land_types = req.body.land_types;
         if (req.body.land_area) user.land_area = req.body.land_area;
         if (req.body.house_types) user.house_types = req.body.house_types;
+        if (req.body.property_possession_type) user.property_possession_type = req.body.property_possession_type;
         if (req.body.business_types) user.business_types = req.body.business_types;
 
         // Contact & About
