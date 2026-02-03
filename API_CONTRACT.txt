@@ -1,8 +1,8 @@
 WEDDINGZON API DOCUMENTATION
 ============================
-Version: 1.1.0
+Version: 1.2.0
 Base URL: /api
-Date: 2026-01-28
+Date: 2026-02-03 (Updated Search & Vendor Products)
 
 INTRODUCTION
 ------------
@@ -62,7 +62,7 @@ DATA MODELS
       "experience_years": "Number"
   },
 
-  // MEDIA
+  // MEDIA (S3 Backed)
   "profilePhoto": "String (Signed URL)",
   "photos": [
     {
@@ -72,6 +72,16 @@ DATA MODELS
       "restricted": "Boolean (True if access not granted)"
     }
   ],
+  
+  // [NEW] PRODUCTS ATTACHMENT (In Search Results)
+  "products": [
+      {
+          "_id": "ObjectId",
+          "name": "String",
+          "price": "Number",
+          "image": "String (Signed URL)"
+      }
+  ],
 
   // PREFERENCES (Franchise Managed)
   "partner_preferences": {
@@ -80,7 +90,6 @@ DATA MODELS
       "religion": "String",
       "community": "String",
       "location": "String"
-      // ...dynamic fields
   }
 }
 
@@ -169,11 +178,41 @@ All routes below require Authentication unless specified.
    Query: ?cursor=...&viewAs=... (for Franchise)
    Response: { "success": true, "data": [ ...UserObjects ], "nextCursor": "..." }
 
-2. SEARCH USERS
+2. SEARCH USERS (UPDATED)
    GET /api/users/search
-   Desc: Advanced search with filters.
-   Query: ?q=name&minAge=20&maxAge=30&gender=Female&city=Delhi...
-   Response: { "success": true, "data": [ ...UserObjects ], "pagination": { ... } }
+   Desc: Advanced search with filters and normalization logic.
+   Query: 
+     - q: String (General search: name, bio, city, occupation)
+     - occupation: String (Normalized: 'Catering' matches 'Caterer', 'Photo' matches 'Photography' etc.)
+     - vendor_status: "active" (Filter specific vendor status)
+     - has_products: "true" (Only vendors with active products)
+     - role: "vendor" | "user"
+     - city: String
+     - state: String
+     - minAge: Number
+     - maxAge: Number
+     - religion: String
+     - community: String
+     - page: Number
+     - limit: Number (Default 20)
+   
+   Response: { 
+       "success": true, 
+       "data": [ 
+           {
+               "_id": "...",
+               "username": "...",
+               "displayName": "...",
+               "occupation": "...",
+               "city": "...",
+               "vendor_details": { ... },
+               "products": [ // NEW: Top 4 active products for this vendor
+                    { "_id": "...", "name": "...", "price": 100, "image": "..." }
+               ]
+           }
+       ], 
+       "pagination": { "total": 100, "page": 1, "pages": 5 } 
+   }
 
 3. GET NEARBY USERS
    GET /api/users/nearby
@@ -193,7 +232,7 @@ All routes below require Authentication unless specified.
    PATCH /api/users/location
    Body: { "latitude": 26.45, "longitude": 80.33 }
 
-7. UPLOAD PHOTOS
+7. UPLOAD PHOTOS (S3)
    POST /api/users/upload-photos
    Content-Type: multipart/form-data
    Body: { "photos": [File] } (Max 10)

@@ -88,11 +88,7 @@ const userSchema = new mongoose.Schema(
             ref: 'User',
             default: null,
         },
-        partner_preferences: {
-            type: Map,
-            of: String, // Simplified for now (e.g., 'minAge': '25', 'maxAge': '30')
-            default: {},
-        },
+
         blockedUsers: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'

@@ -800,6 +800,9 @@ exports.uploadPhotos = async (req, res) => {
 // @desc    Get User By Username (Standardized Errors)
 // @route   GET /api/users/:username
 // @access  Private 
+// @desc    Get User By Username (Standardized Errors)
+// @route   GET /api/users/:username
+// @access  Private 
 exports.getUserProfile = async (req, res) => {
     try {
         const targetUsername = req.params.username;
@@ -823,7 +826,7 @@ exports.getUserProfile = async (req, res) => {
             });
         }
 
-        const userObj = user.toObject();
+        const userObj = user.toObject({ flattenMaps: true });
         const isMe = currentUser._id.toString() === userObj._id.toString();
         const isAdmin = ['admin', 'superadmin'].includes(currentUser.role);
 
@@ -860,7 +863,8 @@ exports.getUserProfile = async (req, res) => {
 
                 // PRIVACY LOGIC: 
                 // If NO Access AND NOT Profile Photo -> Use Blurred Key
-                if (!accessGranted && !photo.isProfile) {
+                // EXCEPTION: Vendors photos are always visible (or at least profile/cover) - keeping strict for now unless role check added
+                if (!accessGranted && !photo.isProfile && userObj.role !== 'vendor') {
                     if (keyToSign && keyToSign.includes('_orig')) {
                         // Regex replacement to handle any extension
                         keyToSign = keyToSign.replace(/_orig\.[^.]+$/, '_blur.webp');
@@ -882,14 +886,51 @@ exports.getUserProfile = async (req, res) => {
                 userObj.profilePhoto = profilePhotoObj.url;
             }
 
-            // Sync coverPhoto field (Secure/Blurred if needed)
+            // Sync coverPhoto field
             const coverPhotoObj = userObj.photos.find(p => p.isCover);
             if (coverPhotoObj) {
                 userObj.coverPhoto = coverPhotoObj.url;
-            } else if (userObj.coverPhoto) {
-                // If legacy coverPhoto string exists but no array item, we verify it
-                // Ideally, we should nullify it if we want strict mode, but let's leave it as is if it's external
-                // But if it's an S3 key (unlikely in old schema, it was null), we're good.
+            }
+        }
+
+        // --- FETCH PRODUCTS IF VENDOR ---
+        if (user.role === 'vendor') {
+            const Product = require('../models/Product');
+            try {
+                // Fetch active products
+                const vendorProducts = await Product.find({
+                    vendor: user._id,
+                    isActive: true
+                }).sort({ createdAt: -1 }); // Newest first
+
+                // Sign product images
+                const products = await Promise.all(vendorProducts.map(async (pObj) => {
+                    const p = pObj.toObject(); // Convert to POJO
+                    let imageUrl = null;
+                    if (p.images && p.images.length > 0) {
+                        // Use getSignedFileUrl which handles both Keys and full S3 URLs
+                        try {
+                            imageUrl = await getSignedFileUrl(p.images[0]);
+                        } catch (e) {
+                            console.error('Product Image Sign Error', e);
+                            imageUrl = p.images[0]; // Fallback
+                        }
+                    }
+                    return {
+                        _id: p._id,
+                        name: p.name,
+                        price: p.price,
+                        description: p.description,
+                        category: p.category,
+                        image: imageUrl // Main image
+                    };
+                }));
+
+                userObj.products = products;
+            } catch (err) {
+                console.error('Error fetching vendor products:', err);
+                // Don't fail the whole request, just log
+                userObj.products = [];
             }
         }
 
@@ -926,7 +967,7 @@ exports.getPublicProfilePreview = async (req, res) => {
             });
         }
 
-        const userObj = user.toObject();
+        const userObj = user.toObject({ flattenMaps: true });
 
         // Sign Only the Profile Photo (others hidden)
         let profilePhotoUrl = userObj.profilePhoto;
@@ -1582,15 +1623,18 @@ exports.updatePartnerPreferences = async (req, res) => {
         const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Update preferences
+        // Update preferences correctly for Mongoose Map
         if (!user.partner_preferences) {
-            user.partner_preferences = {};
+            user.partner_preferences = new Map();
         }
 
-        user.partner_preferences = {
-            ...user.partner_preferences,
-            ...preferences
-        };
+        // Iterate and set individually to avoid spreading internal Mongoose properties
+        for (const [key, value] of Object.entries(preferences)) {
+            // Ensure values are stored as strings (matching schema: of: String)
+            if (value !== undefined && value !== null) {
+                user.partner_preferences.set(key, String(value));
+            }
+        }
 
         await user.save();
 
