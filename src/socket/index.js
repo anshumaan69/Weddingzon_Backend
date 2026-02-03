@@ -45,9 +45,13 @@ module.exports = (io) => {
         }
     });
 
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         const userId = socket.user._id.toString(); // Ensure string
         logger.info(`Socket Connected: ${socket.user.username} (${userId})`);
+
+        // Update User Status to Online
+        await User.findByIdAndUpdate(userId, { isOnline: true });
+        io.emit('user_status', { userId, status: 'online' });
 
         // Join user's own room (for receiving messages)
         socket.join(userId);
@@ -133,8 +137,12 @@ module.exports = (io) => {
             if (data.receiverId) io.to(data.receiverId).emit('user_stop_typing', { userId });
         });
 
-        socket.on('disconnect', () => {
+        socket.on('disconnect', async () => {
             logger.info(`Socket Disconnected: ${socket.user.username}`);
+            // Update User Status to Offline
+            const lastSeen = new Date();
+            await User.findByIdAndUpdate(userId, { isOnline: false, lastSeen });
+            io.emit('user_status', { userId, status: 'offline', lastSeen });
         });
     });
 };

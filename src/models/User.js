@@ -118,6 +118,14 @@ const userSchema = new mongoose.Schema(
         dob: {
             type: Date,
         },
+        lastSeen: {
+            type: Date,
+            default: Date.now,
+        },
+        isOnline: {
+            type: Boolean,
+            default: false,
+        },
         status: {
             type: String,
             enum: ['active', 'banned', 'suspended'],

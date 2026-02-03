@@ -213,7 +213,11 @@ All routes below require Authentication unless specified.
    POST /api/users/report
    Body: { "targetUserId": "ObjectId", "reason": "Spam", "description": "..." }
 
-10. PROFILE VIEWS
+10. PREFERENCES
+    PUT /api/users/preferences
+    Body: { "preferences": { ... } }
+
+11. PROFILE VIEWS
     POST /api/users/view/:userId
     Desc: Record a profile view.
     
@@ -356,10 +360,12 @@ Base URL: /api/franchise
    PATCH /api/franchise/profiles/:profileId
 
 3. MATCHMAKING
-   PATCH /api/franchise/profiles/:profileId/preferences
+   PUT /api/franchise/profiles/:profileId/preferences
    Body: { "preferences": { "minAge": 25, ... } }
    
    GET /api/franchise/custom-matches/:profileId/pdf
+
+   POST /api/franchise/profiles/:profileId/send-credentials
 
 4. PHOTOS
    POST /api/franchise/profiles/:profileId/photos

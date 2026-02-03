@@ -420,11 +420,16 @@ exports.registerDetails = async (req, res) => {
                     ...user.vendor_details,
                     ...req.body.vendor_details
                 };
+
+                // Only set status to pending_approval if we are actually receiving details (Submission)
+                // And if status is not already active (don't downgrade active users)
+                // And we treat this as a submission/resubmission
+                if (!user.vendor_status || user.vendor_status === 'rejected') {
+                    user.vendor_status = 'pending_approval';
+                }
             }
-            // Set default status if not set OR if Rejected (Resubmission)
-            if (!user.vendor_status || user.vendor_status === 'rejected') {
-                user.vendor_status = 'pending_approval';
-            }
+            // Note: If req.body.vendor_details is NOT present (e.g. just role switch), we do NOT set status.
+            // This leaves vendor_status as undefined, allowing frontend to detect "incomplete" state.
         }
         if (dob) {
             user.dob = dob;

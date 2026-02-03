@@ -191,13 +191,13 @@ exports.getNotifications = async (req, res) => {
 
         const [acceptedConnections, grantedPhoto, grantedDetails] = await Promise.all([
             ConnectionRequest.find({ requester: myId, status: 'accepted' })
-                .populate('recipient', 'username first_name last_name profilePhoto photos occupation city state country age')
+                .populate('recipient', 'username first_name last_name profilePhoto photos occupation city state country age isOnline lastSeen')
                 .lean(),
             PhotoAccessRequest.find({ requester: myId, status: 'granted' })
-                .populate('targetUser', 'username first_name last_name profilePhoto photos occupation city state country age')
+                .populate('targetUser', 'username first_name last_name profilePhoto photos occupation city state country age isOnline lastSeen')
                 .lean(),
             DetailsAccessRequest.find({ requester: myId, status: 'granted' })
-                .populate('targetUser', 'username first_name last_name profilePhoto photos occupation city state country age')
+                .populate('targetUser', 'username first_name last_name profilePhoto photos occupation city state country age isOnline lastSeen')
                 .lean()
         ]);
 
@@ -250,13 +250,13 @@ exports.getIncomingRequests = async (req, res) => {
 
         const [connectionRequests, photoRequests, detailsRequests] = await Promise.all([
             ConnectionRequest.find({ recipient: myId, status: 'pending' })
-                .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age')
+                .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age isOnline lastSeen')
                 .lean(),
             PhotoAccessRequest.find({ targetUser: myId, status: 'pending' })
-                .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age')
+                .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age isOnline lastSeen')
                 .lean(),
             DetailsAccessRequest.find({ targetUser: myId, status: 'pending' })
-                .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age')
+                .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age isOnline lastSeen')
                 .lean()
         ]);
 
@@ -454,8 +454,8 @@ exports.getConnections = async (req, res) => {
                 { recipient: myId, status: 'accepted' }
             ]
         })
-            .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age')
-            .populate('recipient', 'username first_name last_name profilePhoto photos occupation city state country age')
+            .populate('requester', 'username first_name last_name profilePhoto photos occupation city state country age isOnline lastSeen')
+            .populate('recipient', 'username first_name last_name profilePhoto photos occupation city state country age isOnline lastSeen')
             .lean(); // Use lean for better performance and modifiability
 
         // Format data to return just the "other" user

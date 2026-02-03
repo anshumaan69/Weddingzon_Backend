@@ -389,24 +389,14 @@ exports.searchUsers = async (req, res) => {
             const Product = require('../models/Product');
             // Find all unique vendors who have at least one active product
             const activeVendors = await Product.distinct('vendor', { isActive: true });
-            console.log('DEBUG: Active Product Vendors:', activeVendors);
 
             // Merge with existing _id filter
             if (query._id) {
-                // If existing _id filter exists (which it does, for excluding self/blocked),
-                // we need to use $and or merge carefully.
-                // Current structure: _id: { $ne: ..., $nin: ... }
-                // We want to add $in: activeVendors
-                // But we can't strict merge if $in already exists (unlikely here yet)
-
-                // Safest way: Add to $and array if complexity increases, 
-                // but since we know _id structure above:
                 query._id.$in = activeVendors;
             } else {
                 query._id = { $in: activeVendors };
             }
         }
-        console.log('DEBUG: Final Query:', JSON.stringify(query, null, 2));
 
         // --- Generic Text Search ---
         if (q) {
@@ -420,7 +410,9 @@ exports.searchUsers = async (req, res) => {
                     { bio: regex },
                     { city: regex },
                     { state: regex },
-                    { occupation: regex }
+                    { occupation: regex },
+                    { 'vendor_details.business_name': regex },
+                    { 'vendor_details.service_type': regex }
                 ]
             });
         }
@@ -455,33 +447,51 @@ exports.searchUsers = async (req, res) => {
         if (city) query.city = new RegExp(city, 'i');
         if (req.query.country) query.country = new RegExp(req.query.country, 'i');
 
-        // --- Professional ---
+        // --- Professional & Category Normalization ---
         if (highest_education) query.highest_education = { $regex: highest_education, $options: 'i' };
         if (annual_income && annual_income !== 'Any') query.annual_income = { $regex: annual_income, $options: 'i' };
-        if (occupation) query.occupation = new RegExp(occupation, 'i');
+
+        if (occupation) {
+            // Normalize Search Terms
+            let searchRegex = new RegExp(occupation, 'i');
+            const term = occupation.toLowerCase();
+
+            if (term.includes('photo')) {
+                searchRegex = /photo|camera/i;
+            } else if (term.includes('jewel')) {
+                searchRegex = /jewel/i;
+            } else if (term.includes('decor')) {
+                searchRegex = /decor/i;
+            } else if (term.includes('makeup') || term.includes('make up')) {
+                searchRegex = /makeup|make up|artist/i;
+            } else if (term.includes('cater') || term.includes('food')) {
+                searchRegex = /cater|food|cook/i;
+            } else if (term.includes('music') || term.includes('dj')) {
+                searchRegex = /music|dj|sound/i;
+            }
+
+            // Search in both occupation AND vendor_details.service_type
+            if (!query.$and) query.$and = [];
+            query.$and.push({
+                $or: [
+                    { occupation: searchRegex },
+                    { 'vendor_details.service_type': searchRegex },
+                    { 'vendor_details.description': searchRegex } // Also check description
+                ]
+            });
+        }
 
         // --- Lifestyle ---
         if (eating_habits && eating_habits !== 'Any') query.eating_habits = { $regex: eating_habits, $options: 'i' };
         if (smoking_habits && smoking_habits !== 'Any') query.smoking_habits = { $regex: smoking_habits, $options: 'i' };
         if (drinking_habits && drinking_habits !== 'Any') query.drinking_habits = { $regex: drinking_habits, $options: 'i' };
 
-        // --- Property / Land Filters (Based on User Request) ---
-        // Assuming user stores these as strings or arrays in 'property_types' or 'land_area'
-        if (property_type) {
-            query.property_types = { $in: [new RegExp(property_type, 'i')] };
-        }
-        // Land Area Range Filter (Refactored to Number)
+        // --- Property / Land Filters ---
+        if (property_type) query.property_types = { $in: [new RegExp(property_type, 'i')] };
         if (minLandArea || maxLandArea) {
             query.land_area = {};
             if (minLandArea) query.land_area.$gte = parseFloat(minLandArea);
             if (maxLandArea) query.land_area.$lte = parseFloat(maxLandArea);
-        }
-
-        // Legacy/Text Land Component Filter
-        if (land_component && land_component !== 'any') {
-            // If range is NOT used, allow text search (fallback) - ONLY if checks fail or for legacy string data (which is broken now)
-            // We can ignore this or try to parse land_component if it's a number
-            // For now, let's leave it but it might not work well with Number type unless exact value match
         }
 
         // --- Height ---
@@ -504,7 +514,9 @@ exports.searchUsers = async (req, res) => {
 
         const total = await User.countDocuments(query);
 
-        // --- Map Display Data ---
+        // --- Map Display Data & FETCH PRODUCTS ---
+        const Product = require('../models/Product');
+
         const data = await Promise.all(users.map(async user => {
             let age = null;
             if (user.dob) {
@@ -512,19 +524,64 @@ exports.searchUsers = async (req, res) => {
                 age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
             }
 
+            // Fetch Top 3 Products for Vendor
+            let products = [];
+            if (vendor_status === 'active' || user.role === 'vendor') {
+                try {
+                    // Assuming products have images. We want to show product images.
+                    // Fetch top 4 active products
+                    const vendorProducts = await Product.find({
+                        vendor: user._id,
+                        isActive: true
+                    })
+                        .select('name price images')
+                        .limit(4);
+
+                    // Sign product images if they are S3 keys
+                    products = await Promise.all(vendorProducts.map(async p => {
+                        let imageUrl = null;
+                        if (p.images && p.images.length > 0) {
+                            const keyOrUrl = p.images[0];
+                            if (!keyOrUrl.startsWith('http')) {
+                                try {
+                                    imageUrl = await getPreSignedUrl(keyOrUrl);
+                                } catch (e) { }
+                            } else {
+                                imageUrl = keyOrUrl;
+                            }
+                        }
+                        return {
+                            _id: p._id,
+                            name: p.name,
+                            price: p.price,
+                            image: imageUrl
+                        };
+                    }));
+
+                } catch (err) {
+                    console.error('Error fetching vendor products for search:', err);
+                }
+            }
+
             // Get Profile Photo URL (Presigned)
             let profileUrl = user.profilePhoto;
 
-            // If profilePhoto is NOT an external URL (Cloudinary) but an S3 path/key logic? 
-            // Current upload logic sets user.profilePhoto = url (which was CDN_URL/key).
-            // We need to extract key to resign it.
-
-            // Better logic: use user.photos find isProfile
+            // Try to find profile photo obj first
             const profilePhotoObj = user.photos?.find(p => p.url === user.profilePhoto) || (user.photos?.[0]);
 
             if (profilePhotoObj && profilePhotoObj.key) {
                 const signed = await getPreSignedUrl(profilePhotoObj.key);
                 if (signed) profileUrl = signed;
+            } else if (typeof user.profilePhoto === 'string' && user.profilePhoto.includes('weedingzon/')) {
+                try {
+                    let key = user.profilePhoto;
+                    if (key.startsWith('http')) {
+                        const parts = key.split('.com/');
+                        if (parts.length > 1) key = parts[1];
+                    }
+                    const signed = await getPreSignedUrl(key);
+                    if (signed) profileUrl = signed;
+                } catch (err) { }
             }
 
             return {
@@ -538,7 +595,8 @@ exports.searchUsers = async (req, res) => {
                 state: user.state,
                 occupation: user.occupation,
                 land_area: user.land_area,
-                vendor_details: user.vendor_details
+                vendor_details: user.vendor_details,
+                products: products // Attached Top Products
             };
         }));
 
