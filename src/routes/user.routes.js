@@ -11,9 +11,7 @@ const { ensureProfileComplete } = require('../middlewares/profileMiddleware');
 
 // Public
 router.get('/:username/public-preview', require('../controllers/user.controller').getPublicProfilePreview);
-
-// Protected Specific Routes (Explicit protect to avoid ordering issues with router.use)
-router.get('/search', protect, require('../controllers/user.controller').searchUsers);
+router.get('/search', optionalAuth, require('../controllers/user.controller').searchUsers);
 router.get('/feed', protect, authorize('member', 'bride', 'groom', 'admin', 'franchise'), ensureProfileComplete, getFeed);
 router.patch('/location', protect, require('../controllers/user.controller').updateLocation);
 router.get('/nearby', protect, ensureProfileComplete, require('../controllers/user.controller').getNearbyUsers);

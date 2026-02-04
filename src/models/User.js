@@ -79,9 +79,32 @@ const userSchema = new mongoose.Schema(
             business_address: { type: String },
             city: { type: String },
             state: { type: String },
+            pincode: { type: String },
             description: { type: String },
-            price_range: { type: String }, // e.g. '$$-$$$'
+            price_range: { type: String },
             experience_years: { type: Number },
+            product: { type: String }, // e.g. 'Portrait/Landscape'
+            map_link: { type: String },
+            embedded_map_link: { type: String },
+            bank_details: {
+                account_holder_name: { type: String },
+                bank_name: { type: String },
+                account_number: { type: String },
+                ifsc_code: { type: String },
+                account_type: { type: String, enum: ['Savings', 'Current'], default: 'Savings' },
+                upi_id: { type: String },
+                linked_mobile_number: { type: String },
+                gstin: { type: String },
+            },
+            social_links: {
+                instagram: { type: String },
+                facebook: { type: String },
+                youtube: { type: String },
+                twitter: { type: String },
+            },
+            business_glance: { type: String }, // Image/File URL
+            working_hours: { type: String },
+            payment_terms: { type: String }, // Renamed from 'payment' for clarity
         },
         created_by: {
             type: mongoose.Schema.Types.ObjectId,

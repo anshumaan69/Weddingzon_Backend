@@ -24,14 +24,14 @@ const logger = require('../utils/logger');
 exports.getFeed = async (req, res) => {
     const startTotal = performance.now();
     try {
-        const { cursor, viewAs } = req.query;
+        const { cursor, viewAs, sort } = req.query;
         console.log('--- FEED DEBUG ---');
         console.log('Query:', req.query);
         console.log('User Role:', req.user.role);
         console.log('User ID:', req.user._id);
 
         const FETCH_SIZE = 15;
-        const SHOW_SIZE = 9;
+        const SHOW_SIZE = sort === 'newest' ? 15 : 9;
 
         // Context User (Defaults to logged-in user)
         let currentUser = req.user;
@@ -191,7 +191,7 @@ exports.getFeed = async (req, res) => {
         // 1. Fetch Candidates (Optimized with lean())
         let users = await User.find(query)
             .select('username first_name last_name profilePhoto photos bio created_at role dob height city caste religion highest_education occupation annual_income marital_status')
-            .sort({ _id: -1 })
+            .sort({ created_at: -1, _id: -1 })
             .limit(FETCH_SIZE)
             .lean();
 
@@ -199,10 +199,12 @@ exports.getFeed = async (req, res) => {
         const nextCursor = users.length > 0 ? users[users.length - 1]._id : null;
 
         // 2. Shuffle Logic
-        users = users.sort(() => Math.random() - 0.5);
+        if (sort !== 'newest') {
+            users = users.sort(() => Math.random() - 0.5);
+        }
 
         // 3. Slice Logic
-        const visibleUsers = users.slice(0, SHOW_SIZE);
+        const visibleUsers = sort === 'newest' ? users : users.slice(0, SHOW_SIZE);
 
         // 4. Process Permissions & Statuses
         let grantedUserIds = new Set();
@@ -361,18 +363,20 @@ exports.searchUsers = async (req, res) => {
         const query = {
             status: 'active',
             role: { $ne: 'franchise' }, // Exclude franchise accounts
-            _id: {
-                $ne: req.user._id,
-                $nin: req.user.blockedUsers || []
-            },
             // is_profile_complete: true, // REMOVED: Managed conditionally below
             $or: [
                 { 'photos.0': { $exists: true } },
                 { profilePhoto: { $ne: null } }
             ]
-
-
         };
+
+        // If user is logged in, exclude self and blocked users
+        if (req.user) {
+            query._id = {
+                $ne: req.user._id,
+                $nin: req.user.blockedUsers || []
+            };
+        }
 
         if (vendor_status) {
             query.vendor_status = vendor_status;
@@ -442,10 +446,23 @@ exports.searchUsers = async (req, res) => {
         if (mother_tongue) query.mother_tongue = { $regex: mother_tongue, $options: 'i' };
         if (marital_status && marital_status !== 'Any') query.marital_status = { $regex: marital_status, $options: 'i' };
 
-        // --- Location ---
-        if (state) query.state = new RegExp(state, 'i');
-        if (city) query.city = new RegExp(city, 'i');
-        if (req.query.country) query.country = new RegExp(req.query.country, 'i');
+        // --- Location (Comprehensive Search) ---
+        if (state || city || req.query.country) {
+            const locTerm = city || state || req.query.country;
+            const locRegex = new RegExp(locTerm, 'i');
+
+            if (!query.$and) query.$and = [];
+            query.$and.push({
+                $or: [
+                    { city: locRegex },
+                    { state: locRegex },
+                    { country: locRegex },
+                    { 'vendor_details.city': locRegex },
+                    { 'vendor_details.state': locRegex },
+                    { 'vendor_details.business_address': locRegex }
+                ]
+            });
+        }
 
         // --- Professional & Category Normalization ---
         if (highest_education) query.highest_education = { $regex: highest_education, $options: 'i' };
