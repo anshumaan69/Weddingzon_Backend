@@ -271,9 +271,33 @@ exports.getIncomingRequests = async (req, res) => {
 
         // Standardize structure
         const formattedRequests = [
-            ...connectionRequests.map(r => ({ ...r, type: 'connection' })),
-            ...photoRequests.map(r => ({ ...r, type: 'photo' })),
-            ...detailsRequests.map(r => ({ ...r, type: 'details' }))
+            ...connectionRequests.map(r => ({
+                _id: r._id,
+                requester: r.requester,
+                recipient: r.recipient,
+                status: r.status,
+                type: 'connection',
+                createdAt: r.createdAt,
+                updatedAt: r.updatedAt
+            })),
+            ...photoRequests.map(r => ({
+                _id: r._id,
+                requester: r.requester,
+                targetUser: r.targetUser,
+                status: r.status,
+                type: 'photo',
+                createdAt: r.createdAt,
+                updatedAt: r.updatedAt
+            })),
+            ...detailsRequests.map(r => ({
+                _id: r._id,
+                requester: r.requester,
+                targetUser: r.targetUser,
+                status: r.status,
+                type: 'details',
+                createdAt: r.createdAt,
+                updatedAt: r.updatedAt
+            }))
         ].filter(r => r.requester);
 
         // Sign Profile Photos
@@ -489,7 +513,9 @@ exports.getConnections = async (req, res) => {
                 age: otherUser.age,
                 city: otherUser.city,
                 state: otherUser.state,
-                country: otherUser.country
+                country: otherUser.country,
+                createdAt: conn.createdAt,
+                updatedAt: conn.updatedAt
             };
         }))).filter(Boolean);
 

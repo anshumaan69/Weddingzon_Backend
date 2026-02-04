@@ -5,8 +5,21 @@ const PhotoAccessRequest = require('../models/PhotoAccessRequest');
 const ConnectionRequest = require('../models/ConnectionRequest');
 const DetailsAccessRequest = require('../models/DetailsAccessRequest');
 // const cloudinary = require('../config/cloudinary'); // Deprecated
-const { getPreSignedUrl, uploadToS3, getSignedFileUrl } = require('../utils/s3'); // Centralized S3 Utils
+// Centralized S3 Utils
+const { getPreSignedUrl, uploadToS3, getSignedFileUrl } = require('../utils/s3');
 const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+
+// Helper to resolve user by ID or Username
+const resolveUser = async (identifier) => {
+    // If it looks like an ObjectId, try ID first (legacy support), otherwise Username
+    if (identifier && identifier.match(/^[0-9a-fA-F]{24}$/)) {
+        const user = await User.findById(identifier);
+        if (user) return user;
+    }
+    const user = await User.findOne({ username: identifier });
+    if (!user) throw new Error('User not found');
+    return user;
+};
 const { s3Client, vendorS3Client } = require('../config/s3');
 const { notifyUser } = require('../services/notification.service');
 const Report = require('../models/Report');
@@ -822,13 +835,16 @@ exports.uploadPhotos = async (req, res) => {
 // @access  Private 
 exports.getUserProfile = async (req, res) => {
     try {
-        const targetUsername = req.params.username;
+        const identifier = req.params.username;
         const currentUser = req.user;
 
-        const user = await User.findOne({ username: targetUsername })
-            .select('-password -__v');
-
-        if (!user) {
+        // resolveUser handles both ObjectId (for ID) and String (for Username)
+        let user;
+        try {
+            user = await resolveUser(identifier);
+            // Select fields (manually since resolveUser might not have select)
+            user = await User.findById(user._id).select('-password -__v');
+        } catch (e) {
             return res.status(404).json({
                 message: 'User not found',
                 code: 'USER_NOT_FOUND'
@@ -880,10 +896,8 @@ exports.getUserProfile = async (req, res) => {
 
                 // PRIVACY LOGIC: 
                 // If NO Access AND NOT Profile Photo -> Use Blurred Key
-                // EXCEPTION: Vendors photos are always visible (or at least profile/cover) - keeping strict for now unless role check added
                 if (!accessGranted && !photo.isProfile && userObj.role !== 'vendor') {
                     if (keyToSign && keyToSign.includes('_orig')) {
-                        // Regex replacement to handle any extension
                         keyToSign = keyToSign.replace(/_orig\.[^.]+$/, '_blur.webp');
                     }
                 }
@@ -893,7 +907,6 @@ exports.getUserProfile = async (req, res) => {
                     signedUrl = await getPreSignedUrl(keyToSign);
                 }
 
-                // Return modified photo object (don't mutate DB object, just response)
                 return { ...photo, url: signedUrl || photo.url, key: keyToSign };
             }));
 
@@ -902,35 +915,26 @@ exports.getUserProfile = async (req, res) => {
             if (profilePhotoObj) {
                 userObj.profilePhoto = profilePhotoObj.url;
             }
-
-            // Sync coverPhoto field
-            const coverPhotoObj = userObj.photos.find(p => p.isCover);
-            if (coverPhotoObj) {
-                userObj.coverPhoto = coverPhotoObj.url;
-            }
         }
 
         // --- FETCH PRODUCTS IF VENDOR ---
         if (user.role === 'vendor') {
             const Product = require('../models/Product');
             try {
-                // Fetch active products
                 const vendorProducts = await Product.find({
                     vendor: user._id,
                     isActive: true
-                }).sort({ createdAt: -1 }); // Newest first
+                }).sort({ createdAt: -1 });
 
-                // Sign product images
                 const products = await Promise.all(vendorProducts.map(async (pObj) => {
-                    const p = pObj.toObject(); // Convert to POJO
+                    const p = pObj.toObject();
                     let imageUrl = null;
                     if (p.images && p.images.length > 0) {
-                        // Use getSignedFileUrl which handles both Keys and full S3 URLs
                         try {
                             imageUrl = await getSignedFileUrl(p.images[0]);
                         } catch (e) {
                             console.error('Product Image Sign Error', e);
-                            imageUrl = p.images[0]; // Fallback
+                            imageUrl = p.images[0];
                         }
                     }
                     return {
@@ -939,19 +943,18 @@ exports.getUserProfile = async (req, res) => {
                         price: p.price,
                         description: p.description,
                         category: p.category,
-                        image: imageUrl // Main image
+                        image: imageUrl
                     };
                 }));
 
                 userObj.products = products;
             } catch (err) {
                 console.error('Error fetching vendor products:', err);
-                // Don't fail the whole request, just log
                 userObj.products = [];
             }
         }
 
-        res.status(200).json(userObj);
+        res.status(200).json({ success: true, data: userObj });
     } catch (error) {
         logger.error('Get Profile Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
