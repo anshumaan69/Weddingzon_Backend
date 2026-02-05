@@ -526,3 +526,85 @@ exports.updateReportStatus = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+
+// @desc    Create a new user (Admin only)
+// @route   POST /api/admin/users
+// @access  Private/Admin
+exports.createUser = async (req, res) => {
+    try {
+        const {
+            username, email, phone, password,
+            first_name, last_name, role,
+            gender, dob, religion, community, city,
+            vendor_details, franchise_details
+        } = req.body;
+
+        // Basic validation
+        if (!username || (!email && !phone) || !password || !role) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        // Check for existing user
+        const existingUser = await User.findOne({
+            $or: [
+                { username },
+                { email: email || undefined },
+                { phone: phone || undefined }
+            ]
+        });
+
+        if (existingUser) {
+            return res.status(400).json({ message: 'User with this username, email or phone already exists' });
+        }
+
+        // Prepare User Data
+        const userData = {
+            username,
+            email,
+            phone,
+            password,
+            first_name,
+            last_name,
+            role,
+            gender,
+            dob,
+            religion,
+            community,
+            city,
+            is_phone_verified: true, // Manual admin creation skips verify
+            is_profile_complete: true,
+            status: 'active'
+        };
+
+        // Role Specific Logic
+        if (role === 'vendor') {
+            userData.vendor_status = 'active';
+            userData.vendor_details = vendor_details;
+        } else if (role === 'franchise') {
+            userData.franchise_status = 'active';
+            userData.franchise_details = franchise_details;
+        } else if (role === 'admin') {
+            userData.admin_role = 'admin';
+        }
+
+        const user = await User.create(userData);
+
+        logger.info(`Admin ${req.user.username} created new user: ${user.username} (Role: ${role})`);
+
+        res.status(201).json({
+            success: true,
+            message: 'User created successfully',
+            data: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                status: user.status
+            }
+        });
+
+    } catch (error) {
+        logger.error('Admin Create User Error', { admin: req.user.username, error: error.message });
+        res.status(500).json({ message: 'Server Error: ' + error.message });
+    }
+};
