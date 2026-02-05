@@ -27,6 +27,7 @@ const Report = require('../models/Report');
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const axios = require('axios');
 
 
 // Local getPreSignedUrl removed in favor of utils/s3.js
@@ -785,10 +786,18 @@ exports.uploadPhotos = async (req, res) => {
 
             user.photos.push(...successUploads);
 
-            // If no profile photo set, set first one
-            if (!user.photos.find(p => p.isProfile) && user.photos.length > 0) {
-                user.photos[0].isProfile = true;
-                user.profilePhoto = user.photos[0].url;
+            // If no profile photo set OR explicitly requested via set_as_profile
+            const shouldSetProfile = req.body.set_as_profile === 'true' || !user.photos.find(p => p.isProfile);
+
+            if (shouldSetProfile && user.photos.length > 0) {
+                // Reset others
+                user.photos.forEach(p => p.isProfile = false);
+
+                // Set the NEWLY uploaded photo (the first one of this batch) as profile
+                // user.photos is already pushed with successUploads
+                const firstNewPhotoIndex = user.photos.length - successUploads.length;
+                user.photos[firstNewPhotoIndex].isProfile = true;
+                user.profilePhoto = user.photos[firstNewPhotoIndex].url;
             }
 
             await user.save();
@@ -1667,5 +1676,39 @@ exports.updatePartnerPreferences = async (req, res) => {
     } catch (error) {
         logger.error('Update Preferences Error', { error: error.message });
         res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Proxy image to bypass S3 CORS
+// @route   GET /api/users/render-image?url=...
+// @access  Public
+exports.renderImage = async (req, res) => {
+    try {
+        const imageUrl = req.query.url;
+        if (!imageUrl) {
+            return res.status(400).send('URL is required');
+        }
+
+        // Security: Ensure it's an S3 URL from our bucket
+        const bucketName = process.env.AWS_BUCKET_NAME || 'hoocai';
+        if (!imageUrl.includes(`${bucketName}.s3`)) {
+            return res.status(403).send('Invalid image source');
+        }
+
+        const response = await axios({
+            method: 'get',
+            url: imageUrl,
+            responseType: 'stream'
+        });
+
+        // Set content type from S3 response
+        res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
+        // Set Cache Control for performance
+        res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day
+
+        response.data.pipe(res);
+    } catch (error) {
+        logger.error('Proxy Image Error', { error: error.message, url: req.query.url });
+        res.status(500).send('Error loading image');
     }
 };

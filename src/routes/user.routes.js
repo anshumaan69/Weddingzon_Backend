@@ -13,6 +13,7 @@ const { ensureProfileComplete } = require('../middlewares/profileMiddleware');
 router.get('/:username/public-preview', require('../controllers/user.controller').getPublicProfilePreview);
 router.get('/search', optionalAuth, require('../controllers/user.controller').searchUsers);
 router.get('/feed', protect, authorize('member', 'bride', 'groom', 'admin', 'franchise'), ensureProfileComplete, getFeed);
+router.get('/render-image', require('../controllers/user.controller').renderImage);
 router.patch('/location', protect, require('../controllers/user.controller').updateLocation);
 router.get('/nearby', protect, ensureProfileComplete, require('../controllers/user.controller').getNearbyUsers);
 router.post('/upload-photos', protect, upload.array('photos', 10), uploadPhotos);

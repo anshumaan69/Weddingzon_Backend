@@ -15,6 +15,7 @@ const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const { admin, initialized: firebaseInitialized } = require('../config/firebase');
 
 const client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
@@ -323,37 +324,74 @@ exports.sendOtp = async (req, res) => {
 };
 
 exports.verifyOtp = async (req, res) => {
-    let { phone, code } = req.body;
+    let { phone, code, idToken } = req.body;
 
-    if (!phone || !code) return res.status(400).json({ message: 'Phone and Code required' });
+    // Default to Firebase verification if idToken is provided
+    if (idToken) {
+        if (!firebaseInitialized) {
+            return res.status(500).json({ message: 'Firebase not initialized on server' });
+        }
 
-    phone = phone.toString().replace(/\s+/g, '');
-    if (!phone.startsWith('+')) phone = '+91' + phone;
+        try {
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            const verifiedPhone = decodedToken.phone_number;
 
+            if (!verifiedPhone) {
+                return res.status(400).json({ message: 'ID Token does not contain a phone number' });
+            }
+
+            phone = verifiedPhone;
+            // Proceed with login/lookup using the verified phone number
+        } catch (error) {
+            logger.error('Firebase Token Verification Failed', { error: error.message });
+            return res.status(401).json({ message: 'Invalid or expired Firebase token' });
+        }
+    } else {
+        // Legacy/Mock Verification logic
+        if (!phone || !code) return res.status(400).json({ message: 'Phone and Code required' });
+
+        phone = phone.toString().replace(/\s+/g, '');
+        if (!phone.startsWith('+')) phone = '+91' + phone;
+
+        try {
+            const user = await User.findOne({
+                $or: [{ phone }, { temp_phone: phone }]
+            }).select('+otp +otpExpires +temp_phone +phone');
+
+            if (!user || !user.otp || !user.otpExpires) {
+                return res.status(400).json({ message: 'Invalid or expired OTP' });
+            }
+
+            if (user.otpExpires < Date.now()) {
+                return res.status(400).json({ message: 'OTP expired' });
+            }
+
+            if (user.otp !== code) {
+                return res.status(400).json({ message: 'Invalid OTP' });
+            }
+
+            // Success: Clear OTP
+            user.otp = undefined;
+            user.otpExpires = undefined;
+            await user.save();
+            // phone is already set correctly for following logic
+        } catch (error) {
+            logger.error(`Verify OTP Error: ${phone}`, { error: error.message });
+            return res.status(500).json({ message: 'Verification failed' });
+        }
+    }
+
+    // Common Logic for both Firebase and Legacy verification
     try {
-        // Fetch User with OTP fields
-        // Look in both phone (Login) and temp_phone (Signup/Linking)
-        const user = await User.findOne({
+        let user = await User.findOne({
             $or: [{ phone }, { temp_phone: phone }]
-        }).select('+otp +otpExpires +temp_phone +phone');
+        }).select('+temp_phone +phone');
 
-        if (!user || !user.otp || !user.otpExpires) {
-            return res.status(400).json({ message: 'Invalid or expired OTP' });
+        if (!user) {
+            // If phone verified but user not found, we might need to handle signup case
+            // But usually the client ensures user exists or we are in a linking flow.
+            return res.status(404).json({ message: 'User not found with this verified phone', code: 'USER_NOT_FOUND' });
         }
-
-        // Check Expiry
-        if (user.otpExpires < Date.now()) {
-            return res.status(400).json({ message: 'OTP expired' });
-        }
-
-        // Check Match
-        if (user.otp !== code) {
-            return res.status(400).json({ message: 'Invalid OTP' });
-        }
-
-        // Success: Clear OTP
-        user.otp = undefined;
-        user.otpExpires = undefined;
 
         // Finalize Phone Link if it was temporary
         if (user.temp_phone === phone) {
@@ -361,18 +399,16 @@ exports.verifyOtp = async (req, res) => {
             user.temp_phone = undefined;
         }
 
-        // Mark Verified if not
+        // Mark Verified
         if (!user.is_phone_verified) user.is_phone_verified = true;
 
         await user.save();
 
-        // Login / Token Gen
         const { accessToken, refreshToken } = generateTokens(user._id);
         setCookies(req, res, accessToken, refreshToken);
 
-        logger.info(`OTP Verified: ${phone}`);
+        logger.info(`Phone Verified & Logged In: ${phone}`);
 
-        // Return user (hide sensitive)
         const userObj = user.toObject();
         delete userObj.otp;
         delete userObj.otpExpires;
@@ -381,8 +417,8 @@ exports.verifyOtp = async (req, res) => {
         return res.status(200).json({ success: true, user: userObj, accessToken, refreshToken });
 
     } catch (error) {
-        logger.error(`Verify OTP Error: ${phone}`, { error: error.message });
-        res.status(500).json({ message: 'Verification failed' });
+        logger.error(`Post-Verification Error: ${phone}`, { error: error.message });
+        res.status(500).json({ message: 'Finalizing verification failed' });
     }
 };
 
