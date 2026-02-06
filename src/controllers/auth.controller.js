@@ -15,7 +15,7 @@ const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
-const { admin, initialized: firebaseInitialized } = require('../config/firebase');
+
 
 const client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
@@ -324,61 +324,14 @@ exports.sendOtp = async (req, res) => {
 };
 
 exports.verifyOtp = async (req, res) => {
-    let { phone, code, idToken } = req.body;
+    // Enforce Fixed OTP '123456' ONLY
+    if (!phone || !code) return res.status(400).json({ message: 'Phone and Code required' });
 
-    // Default to Firebase verification if idToken is provided
-    if (idToken) {
-        if (!firebaseInitialized) {
-            return res.status(500).json({ message: 'Firebase not initialized on server' });
-        }
+    phone = phone.toString().replace(/\s+/g, '');
+    if (!phone.startsWith('+')) phone = '+91' + phone;
 
-        try {
-            const decodedToken = await admin.auth().verifyIdToken(idToken);
-            const verifiedPhone = decodedToken.phone_number;
-
-            if (!verifiedPhone) {
-                return res.status(400).json({ message: 'ID Token does not contain a phone number' });
-            }
-
-            phone = verifiedPhone;
-            // Proceed with login/lookup using the verified phone number
-        } catch (error) {
-            logger.error('Firebase Token Verification Failed', { error: error.message });
-            return res.status(401).json({ message: 'Invalid or expired Firebase token' });
-        }
-    } else {
-        // Legacy/Mock Verification logic
-        if (!phone || !code) return res.status(400).json({ message: 'Phone and Code required' });
-
-        phone = phone.toString().replace(/\s+/g, '');
-        if (!phone.startsWith('+')) phone = '+91' + phone;
-
-        try {
-            const user = await User.findOne({
-                $or: [{ phone }, { temp_phone: phone }]
-            }).select('+otp +otpExpires +temp_phone +phone');
-
-            if (!user || !user.otp || !user.otpExpires) {
-                return res.status(400).json({ message: 'Invalid or expired OTP' });
-            }
-
-            if (user.otpExpires < Date.now()) {
-                return res.status(400).json({ message: 'OTP expired' });
-            }
-
-            if (user.otp !== code) {
-                return res.status(400).json({ message: 'Invalid OTP' });
-            }
-
-            // Success: Clear OTP
-            user.otp = undefined;
-            user.otpExpires = undefined;
-            await user.save();
-            // phone is already set correctly for following logic
-        } catch (error) {
-            logger.error(`Verify OTP Error: ${phone}`, { error: error.message });
-            return res.status(500).json({ message: 'Verification failed' });
-        }
+    if (code !== '123456') {
+        return res.status(400).json({ message: 'Invalid OTP' });
     }
 
     // Common Logic for both Firebase and Legacy verification
